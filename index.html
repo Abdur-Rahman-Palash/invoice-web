@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="login-page" class="page">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1>Invoice Management</h1>
+                    <p>Sign in to your account</p>
+                </div>
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label for="username">User ID</label>
+                        <input type="text" id="username" name="username" required placeholder="Enter your user ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Log In</button>
+                </form>
+                <p class="login-hint">Demo: Use any user ID and password</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="page hidden">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <h2>InvoicePro</h2>
+                </div>
+                <div class="nav-menu">
+                    <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+                    <a href="#" class="nav-link" data-page="invoices">Invoices</a>
+                    <a href="#" class="nav-link" data-page="payments">Payments</a>
+                    <a href="#" class="nav-link" data-page="store">Store</a>
+                </div>
+                <div class="nav-actions">
+                    <div class="user-profile">
+                        <span class="user-name" id="user-name">User</span>
+                        <button class="btn btn-logout" id="logout-btn">Logout</button>
+                    </div>
+                    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="content-page">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Overview of your business metrics</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-blue">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Invoices</h3>
+                            <p class="stat-value" id="total-invoices">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-green">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Revenue</h3>
+                            <p class="stat-value" id="total-revenue">BDT 0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-yellow">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Pending Payments</h3>
+                            <p class="stat-value" id="pending-payments">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Products</h3>
+                            <p class="stat-value" id="total-products">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h2>Quick Actions</h2>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary action-btn" data-action="create-invoice">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Create Invoice
+                        </button>
+                        <button class="btn btn-secondary action-btn" data-action="view-invoices">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            View Invoices
+                        </button>
+                        <button class="btn btn-secondary action-btn" data-action="add-product">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                            </svg>
+                            Add Product
+                        </button>
+                        <button class="btn btn-secondary action-btn" data-action="print-report">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg>
+                            Print Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Invoices -->
+                <div class="recent-section">
+                    <h2>Recent Invoices</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-invoices-body">
+                                <tr>
+                                    <td colspan="5" class="no-data">No invoices yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoices Page -->
+        <div id="invoices-page" class="content-page hidden">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Invoices</h1>
+                    <p>Manage your invoices</p>
+                </div>
+
+                <div class="page-actions">
+                    <button class="btn btn-primary" id="create-invoice-btn">Create Invoice</button>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="search-filter-bar">
+                    <div class="search-box">
+                        <input type="text" id="invoice-search" placeholder="Search by name or invoice ID">
+                        <button class="btn btn-secondary" id="invoice-search-btn">Search</button>
+                    </div>
+                    <div class="filter-box">
+                        <label>Filter by Date:</label>
+                        <input type="date" id="filter-date-from">
+                        <span>to</span>
+                        <input type="date" id="filter-date-to">
+                        <button class="btn btn-secondary" id="filter-date-btn">Filter</button>
+                        <button class="btn btn-outline" id="clear-filter-btn">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice ID</th>
+                                <th>Customer Name</th>
+                                <th>Create Date</th>
+                                <th>Last Modified</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoices-table-body">
+                            <tr>
+                                <td colspan="7" class="no-data">No invoices found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Invoice Page -->
+        <div id="create-invoice-page" class="content-page hidden">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Create Invoice</h1>
+                    <p>Generate a new invoice</p>
+                </div>
+
+                <div class="invoice-form-container">
+                    <form id="create-invoice-form">
+                        <!-- Invoice Details -->
+                        <div class="form-section">
+                            <h2>Invoice Details</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Invoice ID</label>
+                                    <input type="text" id="invoice-id" readonly class="readonly-field">
+                                </div>
+                                <div class="form-group">
+                                    <label>Date</label>
+                                    <input type="date" id="invoice-date" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Information -->
+                        <div class="form-section">
+                            <h2>Customer Information</h2>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customer-name">Customer Name *</label>
+                                    <input type="text" id="customer-name" required placeholder="Enter customer name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customer-address">Address</label>
+                                    <input type="text" id="customer-address" placeholder="Enter address">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="customer-contact">Contact *</label>
+                                    <input type="text" id="customer-contact" required placeholder="Enter contact number">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customer-email">Email (Optional)</label>
+                                    <input type="email" id="customer-email" placeholder="Enter email">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products -->
+                        <div class="form-section">
+                            <h2>Products</h2>
+                            <div id="product-rows">
+                                <!-- Product rows will be added dynamically -->
+                            </div>
+                            <button type="button" class="btn btn-outline" id="add-product-row">+ Add Product</button>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="form-section">
+                            <h2>Summary</h2>
+                            <div class="summary-row">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">BDT 0</span>
+                            </div>
+                            <div class="summary-row">
+                                <label for="discount">Discount:</label>
+                                <input type="number" id="discount" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="summary-row">
+                                <label for="tax">Tax (%):</label>
+                                <input type="number" id="tax" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="summary-row total-row">
+                                <span>Grand Total:</span>
+                                <span id="grand-total">BDT 0</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Invoice</button>
+                            <button type="button" class="btn btn-secondary" id="preview-invoice">Preview</button>
+                            <button type="button" class="btn btn-outline" id="cancel-invoice">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Page -->
+        <div id="payments-page" class="content-page hidden">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Payments</h1>
+                    <p>Payment overview and transactions</p>
+                </div>
+
+                <!-- Payment Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-green">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Paid Invoices</h3>
+                            <p class="stat-value" id="paid-invoices">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-yellow">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Pending Invoices</h3>
+                            <p class="stat-value" id="pending-invoices">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon stat-icon-blue">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Total Earnings</h3>
+                            <p class="stat-value" id="total-earnings">BDT 0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="recent-section">
+                    <h2>Recent Transactions</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-body">
+                                <tr>
+                                    <td colspan="5" class="no-data">No transactions yet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Store Page -->
+        <div id="store-page" class="content-page hidden">
+            <div class="container">
+                <div class="page-header">
+                    <h1>Store</h1>
+                    <p>Manage your products and inventory</p>
+                </div>
+
+                <div class="page-actions">
+                    <button class="btn btn-primary" id="add-product-btn">Add Product</button>
+                </div>
+
+                <!-- Category Filter -->
+                <div class="category-filter">
+                    <button class="category-btn active" data-category="all">All</button>
+                    <button class="category-btn" data-category="Shoe">Shoes</button>
+                    <button class="category-btn" data-category="Bag">Bags</button>
+                    <button class="category-btn" data-category="Sanitary">Sanitary</button>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid" id="products-grid">
+                    <div class="no-products">No products yet. Add your first product!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Preview Modal -->
+        <div id="invoice-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Invoice Preview</h2>
+                    <button class="modal-close" id="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="invoice-preview-content">
+                        <!-- Invoice preview will be rendered here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="print-invoice">Print</button>
+                    <button class="btn btn-secondary" id="download-invoice">Download</button>
+                    <button class="btn btn-outline" id="close-modal-btn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Modal -->
+        <div id="product-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="product-modal-title">Add Product</h2>
+                    <button class="modal-close" id="close-product-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="product-form">
+                        <div class="form-group">
+                            <label for="product-name">Product Name *</label>
+                            <input type="text" id="product-name" required placeholder="Enter product name">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">Category *</label>
+                            <select id="product-category" required>
+                                <option value="">Select category</option>
+                                <option value="Shoe">Shoe</option>
+                                <option value="Bag">Bag</option>
+                                <option value="Sanitary">Sanitary</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-price">Price (BDT) *</label>
+                            <input type="number" id="product-price" required min="0" step="0.01" placeholder="Enter price">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-stock">Stock Quantity *</label>
+                            <input type="number" id="product-stock" required min="0" placeholder="Enter stock quantity">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Product</button>
+                            <button type="button" class="btn btn-outline" id="cancel-product">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/storage.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/invoice.js"></script>
+    <script src="js/product.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
