@@ -1,12 +1,6 @@
 const { defineConfig } = require("vite");
-const { viteStaticCopy } = require("vite-plugin-static-copy");
 
 module.exports = defineConfig({
-    plugins: [
-        viteStaticCopy({
-            targets: [
-                { src: "js/*", dest: "js" }
-            ]
-        })
-    ]
+    // Everything in the public directory is served at the root path
+    // and automatically copied to the dist folder during build.
 });
