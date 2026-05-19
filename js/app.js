@@ -85,12 +85,6 @@ const App = {
             case 'store':
                 Product.renderProducts();
                 break;
-            case 'create-invoice':
-                Invoice.resetForm();
-                Invoice.generateInvoiceId();
-                Invoice.addProductRow();
-                document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
-                break;
         }
 
         // Close mobile menu

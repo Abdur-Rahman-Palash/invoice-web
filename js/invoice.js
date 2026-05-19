@@ -3,6 +3,7 @@
 const Invoice = {
     currentInvoice: null,
     productRows: [],
+    editingInvoiceId: null,
 
     init() {
         this.bindEvents();
@@ -10,12 +11,6 @@ const Invoice = {
     },
 
     bindEvents() {
-        // Create invoice button
-        const createInvoiceBtn = document.getElementById('create-invoice-btn');
-        if (createInvoiceBtn) {
-            createInvoiceBtn.addEventListener('click', () => this.openCreateInvoice());
-        }
-
         // Invoice form
         const invoiceForm = document.getElementById('create-invoice-form');
         if (invoiceForm) {
@@ -34,16 +29,23 @@ const Invoice = {
             cancelInvoiceBtn.addEventListener('click', () => this.cancelInvoice());
         }
 
-        // Preview invoice button
-        const previewInvoiceBtn = document.getElementById('preview-invoice');
-        if (previewInvoiceBtn) {
-            previewInvoiceBtn.addEventListener('click', () => this.previewInvoice());
-        }
+        // Modal and footer buttons
+        this.bindModalButtons();
 
         // Search and filter
         const searchBtn = document.getElementById('invoice-search-btn');
         if (searchBtn) {
             searchBtn.addEventListener('click', () => this.searchInvoices());
+        }
+
+        const searchInput = document.getElementById('invoice-search');
+        if (searchInput) {
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.searchInvoices();
+                }
+            });
         }
 
         const filterBtn = document.getElementById('filter-date-btn');
@@ -55,17 +57,48 @@ const Invoice = {
         if (clearFilterBtn) {
             clearFilterBtn.addEventListener('click', () => this.clearFilters());
         }
+    },
 
-        // Modal events
+    bindModalButtons() {
         const closeModalBtn = document.getElementById('close-modal');
         const closeModalFooterBtn = document.getElementById('close-modal-btn');
         const printInvoiceBtn = document.getElementById('print-invoice');
         const downloadInvoiceBtn = document.getElementById('download-invoice');
+        const editInvoiceBtn = document.getElementById('edit-invoice');
+        const finalizeInvoiceBtn = document.getElementById('finalize-invoice');
 
         if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.closeModal());
         if (closeModalFooterBtn) closeModalFooterBtn.addEventListener('click', () => this.closeModal());
         if (printInvoiceBtn) printInvoiceBtn.addEventListener('click', () => this.printInvoice());
         if (downloadInvoiceBtn) downloadInvoiceBtn.addEventListener('click', () => this.downloadInvoice());
+        if (editInvoiceBtn) editInvoiceBtn.addEventListener('click', () => this.editInvoice());
+        if (finalizeInvoiceBtn) finalizeInvoiceBtn.addEventListener('click', () => this.finalizeInvoice());
+    },
+
+    showFinalModalButtons() {
+        const modalFooter = document.querySelector('#invoice-modal .modal-footer');
+        if (!modalFooter) return;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="edit-invoice">Edit</button>
+            <button class="btn btn-primary" id="finalize-invoice">Final</button>
+        `;
+
+        this.bindModalButtons();
+    },
+
+    showPrintDownloadButtons() {
+        const modalFooter = document.querySelector('#invoice-modal .modal-footer');
+        if (!modalFooter) return;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="edit-invoice">Edit</button>
+            <button class="btn btn-primary" id="print-invoice">Print</button>
+            <button class="btn btn-secondary" id="download-invoice">Download</button>
+            <button class="btn btn-outline" id="close-modal-btn">Close</button>
+        `;
+
+        this.bindModalButtons();
     },
 
     openCreateInvoice() {
@@ -80,6 +113,8 @@ const Invoice = {
         document.getElementById('create-invoice-form').reset();
         document.getElementById('product-rows').innerHTML = '';
         this.productRows = [];
+        this.editingInvoiceId = null;
+        this.currentInvoice = null;
         document.getElementById('subtotal').textContent = 'BDT 0';
         document.getElementById('grand-total').textContent = 'BDT 0';
     },
@@ -91,10 +126,10 @@ const Invoice = {
         document.getElementById('invoice-id').value = invoiceId;
     },
 
-    addProductRow() {
+    addProductRow(productData = {}) {
         const products = Storage.get('products') || [];
         const productRowsContainer = document.getElementById('product-rows');
-        const rowId = Date.now();
+        const rowId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
         const categories = [...new Set(products.map(p => p.category))];
         
@@ -117,15 +152,19 @@ const Invoice = {
                         <option value="">Select product</option>
                         <option value="manual">-- Enter Manually --</option>
                     </select>
-                    <input type="text" class="manual-product-name" placeholder="Enter product name" style="display: none; margin-top: 4px;">
+                    <input type="text" class="manual-product-name" placeholder="Enter product name" style="display: none; margin-top: 4px;" oninput="Invoice.calculateTotals()">
                 </div>
                 <div class="form-group">
-                    <label>Price</label>
-                    <input type="number" class="product-price" placeholder="Enter price" onchange="Invoice.calculateTotals()">
+                    <label>Unit Price</label>
+                    <input type="number" class="product-price" placeholder="Enter price" min="0" step="0.01" oninput="Invoice.calculateTotals()">
                 </div>
                 <div class="form-group">
                     <label>Quantity</label>
-                    <input type="number" class="product-quantity" value="1" min="1" onchange="Invoice.calculateTotals()">
+                    <input type="number" class="product-quantity" value="1" min="1" step="1" oninput="Invoice.calculateTotals()">
+                </div>
+                <div class="form-group">
+                    <label>Total (Auto)</label>
+                    <div class="line-total-box product-line-total">BDT 0.00</div>
                 </div>
                 <button type="button" class="remove-product" onclick="Invoice.removeProductRow('${rowId}')">&times;</button>
             </div>
@@ -133,6 +172,38 @@ const Invoice = {
 
         productRowsContainer.insertAdjacentHTML('beforeend', rowHtml);
         this.productRows.push(rowId);
+
+        const row = document.querySelector(`[data-row-id="${rowId}"]`);
+        if (!row) return;
+
+        if (productData.category) {
+            row.querySelector('.product-category').value = productData.category;
+            this.loadProducts(row.querySelector('.product-category'), rowId);
+        }
+
+        if (productData.name) {
+            const productSelect = row.querySelector('.product-name');
+            const matchedOption = [...productSelect.options].find(option => option.value === productData.name);
+
+            if (matchedOption) {
+                productSelect.value = productData.name;
+                this.handleProductSelect(productSelect, rowId);
+            } else {
+                productSelect.value = 'manual';
+                this.handleProductSelect(productSelect, rowId);
+                row.querySelector('.manual-product-name').value = productData.name;
+            }
+        }
+
+        if (typeof productData.price === 'number') {
+            row.querySelector('.product-price').value = productData.price;
+        }
+
+        if (typeof productData.quantity === 'number') {
+            row.querySelector('.product-quantity').value = productData.quantity;
+        }
+
+        this.calculateTotals();
     },
 
     loadProducts(categorySelect, rowId) {
@@ -154,6 +225,7 @@ const Invoice = {
         priceInput.readOnly = false;
         manualNameInput.style.display = 'none';
         manualNameInput.value = '';
+        this.calculateTotals();
     },
 
     handleProductSelect(productSelect, rowId) {
@@ -203,13 +275,16 @@ const Invoice = {
         rows.forEach(row => {
             const price = parseFloat(row.querySelector('.product-price').value) || 0;
             const quantity = parseFloat(row.querySelector('.product-quantity').value) || 0;
-            subtotal += price * quantity;
+            const lineTotal = price * quantity;
+            row.querySelector('.product-line-total').textContent = `BDT ${lineTotal.toFixed(2)}`;
+            subtotal += lineTotal;
         });
 
         const discount = parseFloat(document.getElementById('discount').value) || 0;
         const taxRate = parseFloat(document.getElementById('tax').value) || 0;
-        const taxAmount = (subtotal - discount) * (taxRate / 100);
-        const grandTotal = subtotal - discount + taxAmount;
+        const taxableAmount = Math.max(subtotal - discount, 0);
+        const taxAmount = taxableAmount * (taxRate / 100);
+        const grandTotal = taxableAmount + taxAmount;
 
         document.getElementById('subtotal').textContent = `BDT ${subtotal.toFixed(2)}`;
         document.getElementById('grand-total').textContent = `BDT ${grandTotal.toFixed(2)}`;
@@ -218,79 +293,13 @@ const Invoice = {
     handleSaveInvoice(e) {
         e.preventDefault();
 
-        const invoiceId = document.getElementById('invoice-id').value;
-        const date = document.getElementById('invoice-date').value;
-        const customerName = document.getElementById('customer-name').value;
-        const customerAddress = document.getElementById('customer-address').value;
-        const customerContact = document.getElementById('customer-contact').value;
-        const customerEmail = document.getElementById('customer-email').value;
+        const invoice = this.getFormData();
+        if (!invoice) return;
 
-        // Get products
-        const products = [];
-        document.querySelectorAll('.product-row').forEach(row => {
-            const category = row.querySelector('.product-category').value;
-            const productSelect = row.querySelector('.product-name').value;
-            const manualProductName = row.querySelector('.manual-product-name').value;
-            const price = parseFloat(row.querySelector('.product-price').value) || 0;
-            const quantity = parseFloat(row.querySelector('.product-quantity').value) || 0;
-
-            // Use manual name if "Enter Manually" is selected, otherwise use dropdown value
-            const productName = productSelect === 'manual' ? manualProductName : productSelect;
-
-            if (productName && quantity > 0 && price > 0) {
-                products.push({
-                    category,
-                    name: productName,
-                    price,
-                    quantity,
-                    total: price * quantity
-                });
-            }
-        });
-
-        if (products.length === 0) {
-            alert('Please add at least one product');
-            return;
-        }
-
-        const subtotal = products.reduce((sum, p) => sum + p.total, 0);
-        const discount = parseFloat(document.getElementById('discount').value) || 0;
-        const taxRate = parseFloat(document.getElementById('tax').value) || 0;
-        const taxAmount = (subtotal - discount) * (taxRate / 100);
-        const grandTotal = subtotal - discount + taxAmount;
-
-        const invoice = {
-            id: invoiceId,
-            date,
-            customerName,
-            customerAddress,
-            customerContact,
-            customerEmail,
-            products,
-            subtotal,
-            discount,
-            taxRate,
-            taxAmount,
-            grandTotal,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        // Save to storage
-        const invoices = Storage.get('invoices') || [];
-        invoices.push(invoice);
-        Storage.set('invoices', invoices);
-
-        // Update dashboard
-        Dashboard.updateStats();
-        Dashboard.renderRecentInvoices();
-        Payment.updateStats();
-
-        alert('Invoice saved successfully!');
-        this.resetForm();
-        App.navigateTo('invoices');
-        this.renderInvoicesTable();
+        this.currentInvoice = invoice;
+        this.renderInvoicePreview(invoice);
+        this.showFinalModalButtons();
+        document.getElementById('invoice-modal').classList.remove('hidden');
     },
 
     cancelInvoice() {
@@ -300,13 +309,44 @@ const Invoice = {
         }
     },
 
-    previewInvoice() {
-        const invoice = this.getFormData();
-        if (!invoice) return;
+    finalizeInvoice() {
+        if (!this.currentInvoice) return;
 
-        this.currentInvoice = invoice;
-        this.renderInvoicePreview(invoice);
-        document.getElementById('invoice-modal').classList.remove('hidden');
+        const invoices = Storage.get('invoices') || [];
+        const existingInvoice = invoices.find(inv => inv.id === this.currentInvoice.id);
+
+        if (!existingInvoice) {
+            const invoiceToSave = {
+                ...this.currentInvoice,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            invoices.push(invoiceToSave);
+            Storage.set('invoices', invoices);
+            this.currentInvoice = invoiceToSave;
+        } else {
+            Object.assign(existingInvoice, this.currentInvoice, {
+                status: existingInvoice.status || 'pending',
+                createdAt: existingInvoice.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            Storage.set('invoices', invoices);
+            this.currentInvoice = existingInvoice;
+        }
+
+        Dashboard.updateStats();
+        Dashboard.renderRecentInvoices();
+        Payment.updateStats();
+        this.renderInvoicesTable();
+        this.showPrintDownloadButtons();
+    },
+
+    editInvoice() {
+        if (!this.currentInvoice) return;
+
+        this.closeModal();
+        this.populateForm(this.currentInvoice);
     },
 
     getFormData() {
@@ -349,8 +389,9 @@ const Invoice = {
         const subtotal = products.reduce((sum, p) => sum + p.total, 0);
         const discount = parseFloat(document.getElementById('discount').value) || 0;
         const taxRate = parseFloat(document.getElementById('tax').value) || 0;
-        const taxAmount = (subtotal - discount) * (taxRate / 100);
-        const grandTotal = subtotal - discount + taxAmount;
+        const taxableAmount = Math.max(subtotal - discount, 0);
+        const taxAmount = taxableAmount * (taxRate / 100);
+        const grandTotal = taxableAmount + taxAmount;
 
         return {
             id: invoiceId,
@@ -368,8 +409,33 @@ const Invoice = {
         };
     },
 
+    populateForm(invoice) {
+        App.navigateTo('create-invoice');
+        this.resetForm();
+        this.editingInvoiceId = invoice.id;
+        this.currentInvoice = invoice;
+
+        document.getElementById('invoice-id').value = invoice.id;
+        document.getElementById('invoice-date').value = invoice.date;
+        document.getElementById('customer-name').value = invoice.customerName || '';
+        document.getElementById('customer-address').value = invoice.customerAddress || '';
+        document.getElementById('customer-contact').value = invoice.customerContact || '';
+        document.getElementById('customer-email').value = invoice.customerEmail || '';
+        document.getElementById('discount').value = invoice.discount || 0;
+        document.getElementById('tax').value = invoice.taxRate || 0;
+
+        if (invoice.products && invoice.products.length) {
+            invoice.products.forEach(product => this.addProductRow(product));
+        } else {
+            this.addProductRow();
+        }
+
+        this.calculateTotals();
+    },
+
     renderInvoicePreview(invoice) {
         const previewContent = document.getElementById('invoice-preview-content');
+        const settings = Storage.get('settings') || {};
         
         previewContent.innerHTML = `
             <div class="invoice-preview">
@@ -391,10 +457,10 @@ const Invoice = {
                     </div>
                     <div class="invoice-preview-section">
                         <h3>From</h3>
-                        <p><strong>Your Company</strong></p>
-                        <p>Your Address</p>
-                        <p>Your Phone</p>
-                        <p>your@email.com</p>
+                        <p><strong>${settings.companyName || 'Your Company'}</strong></p>
+                        <p>${settings.companyAddress || 'Your Address'}</p>
+                        <p>${settings.companyPhone || 'Your Phone'}</p>
+                        <p>${settings.companyEmail || 'your@email.com'}</p>
                     </div>
                 </div>
 
@@ -432,36 +498,7 @@ const Invoice = {
     },
 
     renderInvoicesTable() {
-        const invoices = Storage.get('invoices') || [];
-        const tbody = document.getElementById('invoices-table-body');
-        
-        if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No invoices found</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = invoices.slice().reverse().map(inv => `
-            <tr>
-                <td><a href="#" class="invoice-link" data-id="${inv.id}">${inv.id}</a></td>
-                <td>${inv.customerName}</td>
-                <td>${this.formatDate(inv.date)}</td>
-                <td>${this.formatDate(inv.updatedAt)}</td>
-                <td>BDT ${inv.grandTotal.toFixed(2)}</td>
-                <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline" onclick="Invoice.viewInvoice('${inv.id}')">View</button>
-                    <button class="btn btn-sm btn-outline" onclick="Invoice.deleteInvoice('${inv.id}')">Delete</button>
-                </td>
-            </tr>
-        `).join('');
-
-        // Bind click events for invoice links
-        document.querySelectorAll('.invoice-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.viewInvoice(e.target.dataset.id);
-            });
-        });
+        this.renderFilteredInvoices(Storage.get('invoices') || []);
     },
 
     viewInvoice(invoiceId) {
@@ -471,6 +508,7 @@ const Invoice = {
         if (invoice) {
             this.currentInvoice = invoice;
             this.renderInvoicePreview(invoice);
+            this.showPrintDownloadButtons();
             document.getElementById('invoice-modal').classList.remove('hidden');
         }
     },
@@ -489,33 +527,11 @@ const Invoice = {
     },
 
     searchInvoices() {
-        const searchTerm = document.getElementById('invoice-search').value.toLowerCase();
-        const invoices = Storage.get('invoices') || [];
-        
-        const filtered = invoices.filter(inv => 
-            inv.id.toLowerCase().includes(searchTerm) ||
-            inv.customerName.toLowerCase().includes(searchTerm)
-        );
-
-        this.renderFilteredInvoices(filtered);
+        this.applyFilters();
     },
 
     filterByDate() {
-        const fromDate = document.getElementById('filter-date-from').value;
-        const toDate = document.getElementById('filter-date-to').value;
-        const invoices = Storage.get('invoices') || [];
-
-        const filtered = invoices.filter(inv => {
-            const invoiceDate = new Date(inv.date);
-            const from = fromDate ? new Date(fromDate) : null;
-            const to = toDate ? new Date(toDate) : null;
-
-            if (from && invoiceDate < from) return false;
-            if (to && invoiceDate > to) return false;
-            return true;
-        });
-
-        this.renderFilteredInvoices(filtered);
+        this.applyFilters();
     },
 
     clearFilters() {
@@ -528,23 +544,21 @@ const Invoice = {
     renderFilteredInvoices(invoices) {
         const tbody = document.getElementById('invoices-table-body');
         
+        if (!tbody) return;
+
         if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No invoices found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="no-data">No invoices found</td></tr>';
             return;
         }
 
-        tbody.innerHTML = invoices.slice().reverse().map(inv => `
+        const sortedInvoices = invoices.slice().sort((a, b) => new Date(b.updatedAt || b.createdAt || b.date) - new Date(a.updatedAt || a.createdAt || a.date));
+
+        tbody.innerHTML = sortedInvoices.map(inv => `
             <tr>
                 <td><a href="#" class="invoice-link" data-id="${inv.id}">${inv.id}</a></td>
                 <td>${inv.customerName}</td>
                 <td>${this.formatDate(inv.date)}</td>
                 <td>${this.formatDate(inv.updatedAt)}</td>
-                <td>BDT ${inv.grandTotal.toFixed(2)}</td>
-                <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
-                <td>
-                    <button class="btn btn-sm btn-outline" onclick="Invoice.viewInvoice('${inv.id}')">View</button>
-                    <button class="btn btn-sm btn-outline" onclick="Invoice.deleteInvoice('${inv.id}')">Delete</button>
-                </td>
             </tr>
         `).join('');
 
@@ -554,6 +568,29 @@ const Invoice = {
                 this.viewInvoice(e.target.dataset.id);
             });
         });
+    },
+
+    applyFilters() {
+        const searchTerm = document.getElementById('invoice-search').value.trim().toLowerCase();
+        const fromDate = document.getElementById('filter-date-from').value;
+        const toDate = document.getElementById('filter-date-to').value;
+        const invoices = Storage.get('invoices') || [];
+
+        const filtered = invoices.filter(inv => {
+            const invoiceDate = new Date(inv.date);
+            const from = fromDate ? new Date(fromDate) : null;
+            const to = toDate ? new Date(toDate) : null;
+            const matchesSearch = !searchTerm ||
+                inv.id.toLowerCase().includes(searchTerm) ||
+                inv.customerName.toLowerCase().includes(searchTerm);
+
+            if (!matchesSearch) return false;
+            if (from && invoiceDate < from) return false;
+            if (to && invoiceDate > to) return false;
+            return true;
+        });
+
+        this.renderFilteredInvoices(filtered);
     },
 
     closeModal() {

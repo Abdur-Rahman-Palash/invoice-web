@@ -73,3 +73,4 @@ const Storage = {
 
 // Initialize storage defaults
 Storage.initializeDefaults();
+window.Storage = Storage;
