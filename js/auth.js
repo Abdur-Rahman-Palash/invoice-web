@@ -4,6 +4,11 @@ const Auth = {
     async init() {
         this.bindEvents();
 
+        if (!window.firebaseAuth) {
+            this.showMessage("Authentication is not configured correctly. Please check environment variables.", true);
+            return;
+        }
+
         try {
             await window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
             this.observeAuthState();
