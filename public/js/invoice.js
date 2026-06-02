@@ -115,8 +115,8 @@ const Invoice = {
         this.productRows = [];
         this.editingInvoiceId = null;
         this.currentInvoice = null;
-        document.getElementById('subtotal').textContent = 'BDT 0';
-        document.getElementById('grand-total').textContent = 'BDT 0';
+        document.getElementById('subtotal').textContent = '$0';
+        document.getElementById('grand-total').textContent = '$0';
     },
 
     generateInvoiceId() {
@@ -164,7 +164,7 @@ const Invoice = {
                 </div>
                 <div class="form-group">
                     <label>Total (Auto)</label>
-                    <div class="line-total-box product-line-total">BDT 0.00</div>
+                    <div class="line-total-box product-line-total">$0.00</div>
                 </div>
                 <button type="button" class="remove-product" onclick="Invoice.removeProductRow('${rowId}')">&times;</button>
             </div>
@@ -276,7 +276,7 @@ const Invoice = {
             const price = parseFloat(row.querySelector('.product-price').value) || 0;
             const quantity = parseFloat(row.querySelector('.product-quantity').value) || 0;
             const lineTotal = price * quantity;
-            row.querySelector('.product-line-total').textContent = `BDT ${lineTotal.toFixed(2)}`;
+            row.querySelector('.product-line-total').textContent = `$${lineTotal.toFixed(2)}`;
             subtotal += lineTotal;
         });
 
@@ -286,8 +286,8 @@ const Invoice = {
         const taxAmount = taxableAmount * (taxRate / 100);
         const grandTotal = taxableAmount + taxAmount;
 
-        document.getElementById('subtotal').textContent = `BDT ${subtotal.toFixed(2)}`;
-        document.getElementById('grand-total').textContent = `BDT ${grandTotal.toFixed(2)}`;
+        document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+        document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
     },
 
     handleSaveInvoice(e) {
@@ -437,61 +437,113 @@ const Invoice = {
         const previewContent = document.getElementById('invoice-preview-content');
         const settings = Storage.get('settings') || {};
         
+        const hasSignature = settings.ownerName || settings.ownerTitle;
+        
         previewContent.innerHTML = `
             <div class="invoice-preview">
-                <div class="invoice-preview-header">
-                    <h1>INVOICE</h1>
-                    <div>
-                        <p><strong>Invoice ID:</strong> ${invoice.id}</p>
-                        <p><strong>Date:</strong> ${this.formatDate(invoice.date)}</p>
+                <!-- Header Section - Corporate Layout -->
+                <div class="invoice-header">
+                    <div class="invoice-header-left">
+                        <div class="company-logo">
+                            <div class="logo-icon"></div>
+                            <span class="company-name">${settings.companyName || 'Your Company'}</span>
+                        </div>
+                        
+                        <div class="company-info">
+                            <p>${settings.companyAddress || ''}</p>
+                            <p>${settings.companyPhone || ''}</p>
+                            <p>${settings.companyEmail || ''}</p>
+                        </div>
+                        
+                        <div class="invoice-to">
+                            <p class="invoice-to-label">Bill To</p>
+                            <p class="customer-name">${invoice.customerName}</p>
+                            <p class="customer-address">${invoice.customerAddress || ''}</p>
+                            <p class="customer-contact">${invoice.customerContact || ''}</p>
+                            <p class="customer-contact">${invoice.customerEmail || ''}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="invoice-header-right">
+                        <div>
+                            <h1 class="invoice-title">INVOICE</h1>
+                        </div>
+                        <div class="invoice-meta-right">
+                            <p><strong>Invoice #</strong> ${invoice.id}</p>
+                            <p><strong>Date</strong> ${this.formatDate(invoice.date)}</p>
+                        </div>
                     </div>
                 </div>
-
-                <div class="invoice-preview-details">
-                    <div class="invoice-preview-section">
-                        <h3>Bill To</h3>
-                        <p><strong>${invoice.customerName}</strong></p>
-                        <p>${invoice.customerAddress || 'N/A'}</p>
-                        <p>${invoice.customerContact || 'N/A'}</p>
-                        <p>${invoice.customerEmail || 'N/A'}</p>
+                
+                <!-- Product Table -->
+                <div class="invoice-products">
+                    <div class="product-table-header">
+                        <div class="product-col-description">Description</div>
+                        <div class="product-col-price">Price</div>
+                        <div class="product-col-qty">Qty</div>
+                        <div class="product-col-total">Total</div>
                     </div>
-                    <div class="invoice-preview-section">
-                        <h3>From</h3>
-                        <p><strong>${settings.companyName || 'Your Company'}</strong></p>
-                        <p>${settings.companyAddress || 'Your Address'}</p>
-                        <p>${settings.companyPhone || 'Your Phone'}</p>
-                        <p>${settings.companyEmail || 'your@email.com'}</p>
-                    </div>
+                    ${invoice.products.map((product, index) => `
+                        <div class="product-table-row ${index % 2 === 1 ? 'row-alt' : ''}">
+                            <div class="product-col-description">${product.name}</div>
+                            <div class="product-col-price">$${product.price.toFixed(2)}</div>
+                            <div class="product-col-qty">${product.quantity}</div>
+                            <div class="product-col-total">$${product.total.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
                 </div>
-
-                <table class="invoice-preview-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Quantity</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${invoice.products.map(p => `
-                            <tr>
-                                <td>${p.name}</td>
-                                <td>${p.category}</td>
-                                <td>BDT ${p.price.toFixed(2)}</td>
-                                <td>${p.quantity}</td>
-                                <td>BDT ${p.total.toFixed(2)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-
-                <div class="invoice-preview-total">
-                    <div><span class="label">Subtotal:</span><span class="value">BDT ${invoice.subtotal.toFixed(2)}</span></div>
-                    <div><span class="label">Discount:</span><span class="value">BDT ${invoice.discount.toFixed(2)}</span></div>
-                    <div><span class="label">Tax (${invoice.taxRate}%):</span><span class="value">BDT ${invoice.taxAmount.toFixed(2)}</span></div>
-                    <div class="grand-total"><span class="label">Grand Total:</span><span class="value">BDT ${invoice.grandTotal.toFixed(2)}</span></div>
+                
+                <!-- Footer Section -->
+                <div class="invoice-footer">
+                    <div class="footer-left">
+                        <div class="payment-section">
+                            <h3>Payment Information</h3>
+                            <p>Bank Transfer</p>
+                            <p><strong>Routing:</strong> 012345678</p>
+                            <p><strong>Account:</strong> 1234567890</p>
+                        </div>
+                        
+                        <div class="terms-section">
+                            <h3>Terms</h3>
+                            <p>Net 30 Days</p>
+                            <p>Thank you for your business!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="footer-right">
+                        <div class="total-item">
+                            <span class="total-label">Subtotal</span>
+                            <span class="total-value">$${invoice.subtotal.toFixed(2)}</span>
+                        </div>
+                        ${invoice.discount > 0 ? `
+                        <div class="total-item">
+                            <span class="total-label">Discount</span>
+                            <span class="total-value">-$${invoice.discount.toFixed(2)}</span>
+                        </div>
+                        ` : ''}
+                        ${invoice.taxRate > 0 ? `
+                        <div class="total-item">
+                            <span class="total-label">Tax (${invoice.taxRate}%)</span>
+                            <span class="total-value">$${invoice.taxAmount.toFixed(2)}</span>
+                        </div>
+                        ` : ''}
+                        <div class="total-grand">
+                            <span class="total-label">Total</span>
+                            <span class="total-value">$${invoice.grandTotal.toFixed(2)}</span>
+                        </div>
+                        ${hasSignature ? `
+                        <div class="signature-section">
+                            <div class="signature-line"></div>
+                            ${settings.ownerName ? `<p class="signature-name">${settings.ownerName}</p>` : ''}
+                            ${settings.ownerTitle ? `<p class="signature-title">${settings.ownerTitle}</p>` : ''}
+                        </div>
+                        ` : `
+                        <div class="signature-section">
+                            <div class="signature-line"></div>
+                            <p>Authorized Signature</p>
+                        </div>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -547,7 +599,7 @@ const Invoice = {
         if (!tbody) return;
 
         if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="no-data">No invoices found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No invoices found</td></tr>';
             return;
         }
 
@@ -559,6 +611,13 @@ const Invoice = {
                 <td>${inv.customerName}</td>
                 <td>${this.formatDate(inv.date)}</td>
                 <td>${this.formatDate(inv.updatedAt)}</td>
+                <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                <td>
+                    ${inv.status === 'pending' 
+                        ? `<button class="btn btn-sm btn-primary mark-paid-btn" data-invoice-id="${inv.id}">Mark as Paid</button>`
+                        : `<span class="text-success">✓ Paid</span>`
+                    }
+                </td>
             </tr>
         `).join('');
 
@@ -566,6 +625,13 @@ const Invoice = {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.viewInvoice(e.target.dataset.id);
+            });
+        });
+
+        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                Payment.markAsPaid(e.target.dataset.invoiceId);
             });
         });
     },
@@ -598,56 +664,36 @@ const Invoice = {
     },
 
     printInvoice() {
+        const invoicePreview = document.querySelector('.invoice-preview');
+        if (!invoicePreview) return;
+
+        // Clone the invoice preview
+        const clone = invoicePreview.cloneNode(true);
+        clone.id = 'temp-print-container';
+        document.body.appendChild(clone);
+
         window.print();
+
+        // Remove the clone after print
+        setTimeout(() => {
+            if (document.getElementById('temp-print-container')) {
+                document.getElementById('temp-print-container').remove();
+            }
+        }, 1000);
     },
 
     downloadInvoice() {
-        const invoice = this.currentInvoice;
-        if (!invoice) return;
-
-        const content = `
-INVOICE
-=======
-Invoice ID: ${invoice.id}
-Date: ${this.formatDate(invoice.date)}
-
-BILL TO
--------
-Name: ${invoice.customerName}
-Address: ${invoice.customerAddress || 'N/A'}
-Contact: ${invoice.customerContact || 'N/A'}
-Email: ${invoice.customerEmail || 'N/A'}
-
-PRODUCTS
---------
-${invoice.products.map(p => `
-${p.name} (${p.category})
-Price: BDT ${p.price.toFixed(2)} x ${p.quantity} = BDT ${p.total.toFixed(2)}
-`).join('')}
-
-SUMMARY
--------
-Subtotal: BDT ${invoice.subtotal.toFixed(2)}
-Discount: BDT ${invoice.discount.toFixed(2)}
-Tax (${invoice.taxRate}%): BDT ${invoice.taxAmount.toFixed(2)}
-GRAND TOTAL: BDT ${invoice.grandTotal.toFixed(2)}
-        `;
-
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${invoice.id}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
+        this.printInvoice();
     },
 
     formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+            month: '2-digit',
+            day: '2-digit'
         });
     }
 };
+
+window.Invoice = Invoice;

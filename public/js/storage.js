@@ -64,7 +64,9 @@ const Storage = {
                 companyAddress: 'Your Address',
                 companyPhone: 'Your Phone',
                 companyEmail: 'your@email.com',
-                currency: 'BDT',
+                ownerName: '',
+                ownerTitle: '',
+                currency: 'USD',
                 taxRate: 0
             });
         }

@@ -7,6 +7,7 @@ const App = {
         this.bindNavigation();
         this.bindMobileMenu();
         this.bindDiscountTaxEvents();
+        this.bindSettingsEvents();
         
         // Initialize all modules
         Invoice.init();
@@ -46,6 +47,62 @@ const App = {
         if (taxInput) {
             taxInput.addEventListener('input', () => Invoice.calculateTotals());
         }
+    },
+
+    bindSettingsEvents() {
+        const settingsBtn = document.getElementById('settings-btn');
+        const closeSettingsModal = document.getElementById('close-settings-modal');
+        const cancelSettings = document.getElementById('cancel-settings');
+        const saveSettings = document.getElementById('save-settings');
+
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.openSettings());
+        }
+
+        if (closeSettingsModal) {
+            closeSettingsModal.addEventListener('click', () => this.closeSettings());
+        }
+
+        if (cancelSettings) {
+            cancelSettings.addEventListener('click', () => this.closeSettings());
+        }
+
+        if (saveSettings) {
+            saveSettings.addEventListener('click', () => this.saveSettings());
+        }
+    },
+
+    openSettings() {
+        const settings = Storage.get('settings') || {};
+        
+        document.getElementById('company-name').value = settings.companyName || '';
+        document.getElementById('company-address').value = settings.companyAddress || '';
+        document.getElementById('company-phone').value = settings.companyPhone || '';
+        document.getElementById('company-email').value = settings.companyEmail || '';
+        document.getElementById('owner-name').value = settings.ownerName || '';
+        document.getElementById('owner-title').value = settings.ownerTitle || '';
+        
+        document.getElementById('settings-modal').classList.remove('hidden');
+    },
+
+    closeSettings() {
+        document.getElementById('settings-modal').classList.add('hidden');
+    },
+
+    saveSettings() {
+        const settings = {
+            companyName: document.getElementById('company-name').value,
+            companyAddress: document.getElementById('company-address').value,
+            companyPhone: document.getElementById('company-phone').value,
+            companyEmail: document.getElementById('company-email').value,
+            ownerName: document.getElementById('owner-name').value,
+            ownerTitle: document.getElementById('owner-title').value,
+            currency: 'USD',
+            taxRate: 0
+        };
+
+        Storage.set('settings', settings);
+        this.closeSettings();
     },
 
     navigateTo(page) {
@@ -91,6 +148,8 @@ const App = {
         document.querySelector('.nav-menu').classList.remove('active');
     }
 };
+
+window.App = App;
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {

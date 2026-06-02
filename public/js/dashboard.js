@@ -16,7 +16,7 @@ const Dashboard = {
 
         // Total revenue
         const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-        document.getElementById('total-revenue').textContent = `BDT ${totalRevenue.toFixed(2)}`;
+        document.getElementById('total-revenue').textContent = `$${totalRevenue.toFixed(2)}`;
 
         // Pending payments
         const pendingPayments = invoices.filter(inv => inv.status === 'pending').length;
@@ -31,7 +31,7 @@ const Dashboard = {
         const tbody = document.getElementById('recent-invoices-body');
         
         if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="no-data">No invoices yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No invoices yet</td></tr>';
             return;
         }
 
@@ -43,10 +43,22 @@ const Dashboard = {
                 <td>${inv.id}</td>
                 <td>${inv.customerName}</td>
                 <td>${this.formatDate(inv.date)}</td>
-                <td>BDT ${inv.grandTotal.toFixed(2)}</td>
+                <td>$${inv.grandTotal.toFixed(2)}</td>
                 <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
+                <td>
+                    ${inv.status === 'pending' 
+                        ? `<button class="btn btn-sm btn-primary mark-paid-btn" data-invoice-id="${inv.id}">Mark as Paid</button>`
+                        : `<span class="text-success">✓ Paid</span>`
+                    }
+                </td>
             </tr>
         `).join('');
+
+        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                Payment.markAsPaid(e.target.dataset.invoiceId);
+            });
+        });
     },
 
     bindEvents() {
@@ -82,8 +94,8 @@ const Dashboard = {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'short',
-            day: 'numeric'
+            month: '2-digit',
+            day: '2-digit'
         });
     }
 };

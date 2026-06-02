@@ -59,7 +59,7 @@ const Product = {
             <div class="product-card">
                 <h3>${p.name}</h3>
                 <p class="category">${p.category}</p>
-                <p class="price">BDT ${p.price.toFixed(2)}</p>
+                <p class="price">$${p.price.toFixed(2)}</p>
                 <p class="stock">Stock: ${p.stock}</p>
                 <div class="product-actions">
                     <button class="btn btn-sm btn-outline" onclick="Product.editProduct('${p.id}')">Edit</button>
@@ -155,3 +155,5 @@ const Product = {
         this.editingProductId = null;
     }
 };
+
+window.Product = Product;
