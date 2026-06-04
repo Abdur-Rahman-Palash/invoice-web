@@ -14,5 +14,6 @@ if (isConfigValid) {
         console.error("Firebase initialization error:", error);
     }
 } else {
-    console.error("Firebase configuration is missing or invalid. Check your environment variables.");
+    console.log("Firebase not configured - running in demo mode");
+    window.firebaseAuth = null;
 }

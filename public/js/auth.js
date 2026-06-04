@@ -5,7 +5,17 @@ const Auth = {
         this.bindEvents();
 
         if (!window.firebaseAuth) {
-            this.showMessage("Authentication is not configured correctly. Please check environment variables.", true);
+            console.log("Running in demo mode - no authentication needed");
+            // Auto login in demo mode
+            this.currentUser = {
+                id: "demo-user-123",
+                name: "Demo User",
+                email: "demo@example.com",
+                loginTime: new Date().toISOString()
+            };
+            const storage = this.getStorage();
+            if (storage) storage.set("currentUser", this.currentUser);
+            this.showApp();
             return;
         }
 
@@ -86,6 +96,20 @@ const Auth = {
         e.preventDefault();
         const { email, password } = this.getCredentials();
 
+        if (!window.firebaseAuth) {
+            // Demo mode login
+            this.currentUser = {
+                id: "demo-user-123",
+                name: email.split('@')[0] || "Demo User",
+                email: email || "demo@example.com",
+                loginTime: new Date().toISOString()
+            };
+            const storage = this.getStorage();
+            if (storage) storage.set("currentUser", this.currentUser);
+            this.showApp();
+            return;
+        }
+
         if (!email || !password) {
             this.showMessage("Enter your email and password.", true);
             return;
@@ -100,6 +124,20 @@ const Auth = {
     async handleSignup() {
         const { email, password } = this.getCredentials();
 
+        if (!window.firebaseAuth) {
+            // Demo mode signup
+            this.currentUser = {
+                id: "demo-user-123",
+                name: email.split('@')[0] || "Demo User",
+                email: email || "demo@example.com",
+                loginTime: new Date().toISOString()
+            };
+            const storage = this.getStorage();
+            if (storage) storage.set("currentUser", this.currentUser);
+            this.showApp();
+            return;
+        }
+
         if (!email || !password) {
             this.showMessage("Enter your email and password before creating an account.", true);
             return;
@@ -112,6 +150,20 @@ const Auth = {
     },
 
     async handleGoogleSignIn() {
+        if (!window.firebaseAuth) {
+            // Demo mode Google sign-in
+            this.currentUser = {
+                id: "demo-google-user-123",
+                name: "Demo Google User",
+                email: "demo-google@example.com",
+                loginTime: new Date().toISOString()
+            };
+            const storage = this.getStorage();
+            if (storage) storage.set("currentUser", this.currentUser);
+            this.showApp();
+            return;
+        }
+
         await this.runAuthAction(async () => {
             await window.firebaseAuth.signInWithPopup(window.googleProvider);
             this.showMessage("Google sign-in successful.");
@@ -119,6 +171,15 @@ const Auth = {
     },
 
     async handleLogout() {
+        if (!window.firebaseAuth) {
+            // Demo mode logout
+            this.currentUser = null;
+            const storage = this.getStorage();
+            if (storage) storage.remove("currentUser");
+            this.showLogin();
+            return;
+        }
+
         await this.runAuthAction(async () => {
             await window.firebaseAuth.signOut();
         }, false);
