@@ -325,6 +325,16 @@ body {
     font-size: var(--font-size-md);
 }
 
+.back-button {
+    margin-bottom: var(--spacing-md);
+    padding: calc(var(--spacing-sm) - 2px) var(--spacing-md);
+    font-size: var(--font-size-sm);
+}
+
+.back-button.hidden {
+    display: none;
+}
+
 /* Page Actions */
 .page-actions {
     display: flex;
