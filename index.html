@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Management System</title>
+    <title>Office Management System</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <div class="login-container">
             <div class="login-card">
                 <div class="login-header">
-                    <h1>Invoice Management</h1>
+                    <h1>Office Management</h1>
                 </div>
                 <form id="login-form" class="login-form">
                     <div class="form-group">
@@ -41,15 +41,10 @@
             <div class="nav-container">
                 <div class="nav-brand">
                    <h2 class="logo">
-  <a href="/">InvoicePro</a>
+  <a href="/">Office Management System</a>
 </h2>
                 </div>
-                <div class="nav-menu">
-                    <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
-                    <a href="#" class="nav-link" data-page="invoices">Invoices</a>
-                    <a href="#" class="nav-link" data-page="payments">Payments</a>
-                    <a href="#" class="nav-link" data-page="store">Store</a>
-                </div>
+               
                 <div class="nav-actions">
                     <button class="btn btn-outline btn-sm" id="settings-btn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -95,16 +90,7 @@
                         <p>Create and manage invoices</p>
                     </div>
 
-                    <div class="module-card" onclick="App.navigateTo('payments')">
-                        <div class="module-icon module-icon-green">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
-                            </svg>
-                        </div>
-                        <h2>Payment</h2>
-                        <p>Track payments and transactions</p>
-                    </div>
+                   
 
                     <div class="module-card" onclick="App.navigateTo('store')">
                         <div class="module-icon module-icon-purple">
@@ -118,17 +104,7 @@
                         <p>Manage products and inventory</p>
                     </div>
 
-                    <div class="module-card" onclick="App.navigateTo('payments')">
-                        <div class="module-icon module-icon-yellow">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
-                                <path d="M4 6v12a2 2 0 0 0 2 2h14v-4"></path>
-                                <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path>
-                            </svg>
-                        </div>
-                        <h2>Wallet</h2>
-                        <p>View wallet balance and history</p>
-                    </div>
+                   
                 </div>
 
                 <div class="stats-grid dashboard-summary-grid">
@@ -240,6 +216,17 @@
                         </div>
                         <h2>VIEW</h2>
                         <p>View existing invoices</p>
+                    </div>
+
+                    <div class="action-card" onclick="Invoice.openEditInvoice()">
+                        <div class="action-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path>
+                            </svg>
+                        </div>
+                        <h2>EDIT</h2>
+                        <p>Edit an existing invoice</p>
                     </div>
                 </div>
             </div>
@@ -621,6 +608,6 @@
     </script>
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
-<script src="https://aics-sdcf.onrender.com/js/chat-widget.js?v=1782644263196" data-business-id="ca9cea87cb5908890b6a5f96f4ef1118"></script>
+    <script src="https://aics-sdcf.onrender.com/js/chat-widget.js?v=1782644263196" data-business-id="ca9cea87cb5908890b6a5f96f4ef1118"></script>
 </body>
 </html>

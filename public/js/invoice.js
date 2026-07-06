@@ -109,6 +109,16 @@ const Invoice = {
         document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
     },
 
+    openEditInvoice() {
+        const invoices = Storage.get('invoices') || [];
+        if (invoices.length === 0) {
+            alert('No invoices available to edit. Please create an invoice first.');
+            return;
+        }
+
+        App.navigateTo('invoices');
+    },
+
     resetForm() {
         document.getElementById('create-invoice-form').reset();
         document.getElementById('product-rows').innerHTML = '';
@@ -613,6 +623,7 @@ const Invoice = {
                 <td>${this.formatDate(inv.updatedAt)}</td>
                 <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
                 <td>
+                    <button class="btn btn-sm btn-secondary edit-invoice-row-btn" data-invoice-id="${inv.id}">Edit</button>
                     ${inv.status === 'pending' 
                         ? `<button class="btn btn-sm btn-primary mark-paid-btn" data-invoice-id="${inv.id}">Mark as Paid</button>`
                         : `<span class="text-success">✓ Paid</span>`
@@ -625,6 +636,13 @@ const Invoice = {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.viewInvoice(e.target.dataset.id);
+            });
+        });
+
+        document.querySelectorAll('.edit-invoice-row-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.populateForm(Storage.get('invoices').find(inv => inv.id === e.target.dataset.invoiceId));
             });
         });
 
