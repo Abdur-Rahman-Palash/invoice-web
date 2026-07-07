@@ -77,6 +77,12 @@ const Invoice = {
                         this.populateForm(invoice);
                     }
                 }
+                // Handle delete button
+                if (e.target.classList.contains('delete-invoice-btn')) {
+                    e.stopPropagation();
+                    const invoiceId = e.target.dataset.invoiceId;
+                    this.deleteInvoice(invoiceId);
+                }
                 // Handle invoice link
                 if (e.target.classList.contains('invoice-link')) {
                     e.preventDefault();
@@ -663,11 +669,26 @@ const Invoice = {
         }
     },
 
-    deleteInvoice(invoiceId) {
+    async deleteInvoice(invoiceId) {
         if (confirm('Are you sure you want to delete this invoice?')) {
             const invoices = Storage.get('invoices') || [];
             const filtered = invoices.filter(inv => inv.id !== invoiceId);
             Storage.set('invoices', filtered);
+            
+            // Delete from database
+            try {
+                const response = await fetch(`http://localhost:3000/api/invoices/${invoiceId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    console.log('Invoice deleted from database successfully');
+                } else {
+                    console.error('Failed to delete invoice from database');
+                }
+            } catch (error) {
+                console.error('Error deleting invoice from database:', error);
+            }
             
             this.renderInvoicesTable();
             Dashboard.updateStats();
@@ -716,6 +737,7 @@ const Invoice = {
                         ? `<button class="btn btn-sm btn-primary mark-paid-btn" data-invoice-id="${inv.id}">Mark as Paid</button>`
                         : `<span class="text-success">✓ Paid</span>`
                     }
+                    <button class="btn btn-sm btn-danger delete-invoice-btn" data-invoice-id="${inv.id}">Delete</button>
                 </td>
             </tr>
         `).join('');
