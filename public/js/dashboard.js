@@ -12,23 +12,23 @@ const Dashboard = {
         const products = Storage.get('products') || [];
 
         // Total invoices
-        document.getElementById('total-invoices').textContent = invoices.length;
-
-        // Total revenue
-        const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.grandTotal || 0), 0);
-        document.getElementById('total-revenue').textContent = `$${totalRevenue.toFixed(2)}`;
-
-        // Pending payments
-        const pendingPayments = invoices.filter(inv => inv.status === 'pending').length;
-        document.getElementById('pending-payments').textContent = pendingPayments;
+        const totalInvoicesEl = document.getElementById('total-invoices');
+        if (totalInvoicesEl) {
+            totalInvoicesEl.textContent = invoices.length;
+        }
 
         // Total products
-        document.getElementById('total-products').textContent = products.length;
+        const totalProductsEl = document.getElementById('total-products');
+        if (totalProductsEl) {
+            totalProductsEl.textContent = products.length;
+        }
     },
 
     renderRecentInvoices() {
         const invoices = Storage.get('invoices') || [];
         const tbody = document.getElementById('recent-invoices-body');
+        
+        if (!tbody) return;
         
         if (invoices.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="no-data">No invoices yet</td></tr>';

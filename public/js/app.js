@@ -163,7 +163,10 @@ const App = {
         }
 
         // Close mobile menu
-        document.querySelector('.nav-menu').classList.remove('active');
+        const navMenu = document.querySelector('.nav-menu');
+        if (navMenu) {
+            navMenu.classList.remove('active');
+        }
     },
 
     goBack() {
