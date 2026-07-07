@@ -1,21 +1,21 @@
 const pool = require('./db');
 
 /**
- * Save or update invoice in database
- * @param {string} invoiceId - The invoice ID to save
+ * Save or update invoice in database with full invoice data
+ * @param {Object} invoiceData - The complete invoice data to save
  * @returns {Promise<Object>} The saved invoice record
  */
-async function saveInvoice(invoiceId) {
+async function saveInvoice(invoiceData) {
   try {
     const query = `
-      INSERT INTO invoices (invoice_id, last_modified)
-      VALUES ($1, CURRENT_TIMESTAMP)
+      INSERT INTO invoices (invoice_id, last_modified, invoice_data)
+      VALUES ($1, CURRENT_TIMESTAMP, $2)
       ON CONFLICT (invoice_id) 
-      DO UPDATE SET last_modified = CURRENT_TIMESTAMP
+      DO UPDATE SET last_modified = CURRENT_TIMESTAMP, invoice_data = $2
       RETURNING *;
     `;
     
-    const result = await pool.query(query, [invoiceId]);
+    const result = await pool.query(query, [invoiceData.id, JSON.stringify(invoiceData)]);
     console.log('Invoice saved successfully:', result.rows[0]);
     return result.rows[0];
   } catch (error) {
@@ -39,8 +39,14 @@ async function getInvoice(invoiceId) {
       return null;
     }
     
-    console.log('Invoice retrieved:', result.rows[0]);
-    return result.rows[0];
+    const invoice = result.rows[0];
+    // Parse the JSON data
+    if (invoice.invoice_data) {
+      return JSON.parse(invoice.invoice_data);
+    }
+    
+    console.log('Invoice retrieved:', invoice);
+    return invoice;
   } catch (error) {
     console.error('Error getting invoice:', error);
     throw error;
@@ -56,7 +62,14 @@ async function getAllInvoices() {
     const query = 'SELECT * FROM invoices ORDER BY last_modified DESC';
     const result = await pool.query(query);
     console.log('All invoices retrieved:', result.rows.length);
-    return result.rows;
+    
+    // Parse JSON data for each invoice
+    return result.rows.map(row => {
+      if (row.invoice_data) {
+        return JSON.parse(row.invoice_data);
+      }
+      return row;
+    });
   } catch (error) {
     console.error('Error getting all invoices:', error);
     throw error;

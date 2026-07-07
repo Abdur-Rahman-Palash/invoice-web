@@ -388,7 +388,7 @@ const Invoice = {
         }
     },
 
-    finalizeInvoice() {
+    async finalizeInvoice() {
         if (!this.currentInvoice) return;
 
         const invoices = Storage.get('invoices') || [];
@@ -412,6 +412,25 @@ const Invoice = {
             });
             Storage.set('invoices', invoices);
             this.currentInvoice = existingInvoice;
+        }
+
+        // Save to database
+        try {
+            const response = await fetch('http://localhost:3000/api/invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(this.currentInvoice)
+            });
+            
+            if (response.ok) {
+                console.log('Invoice saved to database successfully');
+            } else {
+                console.error('Failed to save invoice to database');
+            }
+        } catch (error) {
+            console.error('Error saving invoice to database:', error);
         }
 
         Dashboard.updateStats();
