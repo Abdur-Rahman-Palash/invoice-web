@@ -132,9 +132,12 @@ const Invoice = {
     openCreateInvoice() {
         App.navigateTo('create-invoice');
         this.resetForm();
-        this.generateInvoiceId();
-        this.addProductRow();
-        document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
+        // Small delay to ensure DOM is ready after navigation
+        setTimeout(() => {
+            this.generateInvoiceId();
+            this.addProductRow();
+            document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
+        }, 50);
     },
 
     openEditInvoice() {
@@ -148,13 +151,21 @@ const Invoice = {
     },
 
     resetForm() {
-        document.getElementById('create-invoice-form').reset();
+        const form = document.getElementById('create-invoice-form');
+        if (form) {
+            form.reset();
+        }
         document.getElementById('product-rows').innerHTML = '';
         this.productRows = [];
         this.editingInvoiceId = null;
         this.currentInvoice = null;
         document.getElementById('subtotal').textContent = '$0';
         document.getElementById('grand-total').textContent = '$0';
+        // Clear invoice ID field separately since it's readonly
+        const invoiceIdField = document.getElementById('invoice-id');
+        if (invoiceIdField) {
+            invoiceIdField.value = '';
+        }
     },
 
     generateInvoiceId() {
@@ -174,7 +185,13 @@ const Invoice = {
         
         const nextId = maxId + 1;
         const invoiceId = `INV-${String(nextId).padStart(4, '0')}`;
-        document.getElementById('invoice-id').value = invoiceId;
+        const invoiceIdField = document.getElementById('invoice-id');
+        if (invoiceIdField) {
+            invoiceIdField.value = invoiceId;
+            console.log('Invoice ID set:', invoiceId);
+        } else {
+            console.error('Invoice ID field not found');
+        }
     },
 
     addProductRow(productData = {}) {
