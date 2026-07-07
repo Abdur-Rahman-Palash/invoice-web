@@ -57,6 +57,34 @@ const Invoice = {
         if (clearFilterBtn) {
             clearFilterBtn.addEventListener('click', () => this.clearFilters());
         }
+
+        // Event delegation for invoices table
+        const invoicesTableBody = document.getElementById('invoices-table-body');
+        if (invoicesTableBody) {
+            invoicesTableBody.addEventListener('click', (e) => {
+                // Handle mark as paid button
+                if (e.target.classList.contains('mark-paid-btn')) {
+                    e.stopPropagation();
+                    const invoiceId = e.target.dataset.invoiceId;
+                    Payment.markAsPaid(invoiceId);
+                }
+                // Handle edit button
+                if (e.target.classList.contains('edit-invoice-row-btn')) {
+                    e.stopPropagation();
+                    const invoiceId = e.target.dataset.invoiceId;
+                    const invoice = Storage.get('invoices').find(inv => inv.id === invoiceId);
+                    if (invoice) {
+                        this.populateForm(invoice);
+                    }
+                }
+                // Handle invoice link
+                if (e.target.classList.contains('invoice-link')) {
+                    e.preventDefault();
+                    const invoiceId = e.target.dataset.id;
+                    this.viewInvoice(invoiceId);
+                }
+            });
+        }
     },
 
     bindModalButtons() {
@@ -131,7 +159,20 @@ const Invoice = {
 
     generateInvoiceId() {
         const invoices = Storage.get('invoices') || [];
-        const nextId = invoices.length + 1;
+        let maxId = 0;
+        
+        // Find the maximum existing invoice ID
+        invoices.forEach(inv => {
+            const match = inv.id.match(/INV-(\d+)/);
+            if (match) {
+                const idNum = parseInt(match[1], 10);
+                if (idNum > maxId) {
+                    maxId = idNum;
+                }
+            }
+        });
+        
+        const nextId = maxId + 1;
         const invoiceId = `INV-${String(nextId).padStart(4, '0')}`;
         document.getElementById('invoice-id').value = invoiceId;
     },
@@ -631,27 +672,6 @@ const Invoice = {
                 </td>
             </tr>
         `).join('');
-
-        document.querySelectorAll('.invoice-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.viewInvoice(e.target.dataset.id);
-            });
-        });
-
-        document.querySelectorAll('.edit-invoice-row-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.populateForm(Storage.get('invoices').find(inv => inv.id === e.target.dataset.invoiceId));
-            });
-        });
-
-        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                Payment.markAsPaid(e.target.dataset.invoiceId);
-            });
-        });
     },
 
     applyFilters() {
