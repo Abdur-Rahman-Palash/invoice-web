@@ -100,7 +100,12 @@ const Invoice = {
         if (printInvoiceBtn) printInvoiceBtn.addEventListener('click', () => this.printInvoice());
         if (downloadInvoiceBtn) downloadInvoiceBtn.addEventListener('click', () => this.downloadInvoice());
         if (editInvoiceBtn) editInvoiceBtn.addEventListener('click', () => this.editInvoice());
-        if (finalizeInvoiceBtn) finalizeInvoiceBtn.addEventListener('click', () => this.finalizeInvoice());
+        if (finalizeInvoiceBtn) {
+            finalizeInvoiceBtn.addEventListener('click', () => {
+                console.log('Final button clicked');
+                this.finalizeInvoice();
+            });
+        }
     },
 
     showFinalModalButtons() {
@@ -112,7 +117,10 @@ const Invoice = {
             <button class="btn btn-primary" id="finalize-invoice">Final</button>
         `;
 
-        this.bindModalButtons();
+        // Small delay to ensure DOM is updated before binding events
+        setTimeout(() => {
+            this.bindModalButtons();
+        }, 10);
     },
 
     showPrintDownloadButtons() {
@@ -126,7 +134,10 @@ const Invoice = {
             <button class="btn btn-outline" id="close-modal-btn">Close</button>
         `;
 
-        this.bindModalButtons();
+        // Small delay to ensure DOM is updated before binding events
+        setTimeout(() => {
+            this.bindModalButtons();
+        }, 10);
     },
 
     openCreateInvoice() {
