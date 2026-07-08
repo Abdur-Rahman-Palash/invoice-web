@@ -66,10 +66,18 @@ async function getAllInvoices() {
     // Parse JSON data for each invoice
     return result.rows.map(row => {
       if (row.invoice_data) {
-        return JSON.parse(row.invoice_data);
+        try {
+          if (typeof row.invoice_data === 'string') {
+            return JSON.parse(row.invoice_data);
+          }
+          return row.invoice_data;
+        } catch (parseError) {
+          console.error('Error parsing invoice_data:', parseError);
+          return null;
+        }
       }
-      return row;
-    });
+      return null;
+    }).filter(invoice => invoice !== null);
   } catch (error) {
     console.error('Error getting all invoices:', error);
     throw error;
