@@ -32,11 +32,17 @@ const Storage = {
         try {
             if (key === 'invoices') {
                 for (const invoice of value) {
-                    await fetch(`${API_BASE_URL}/invoices`, {
+                    console.log('Saving invoice to API:', invoice.id);
+                    const response = await fetch(`${API_BASE_URL}/invoices`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(invoice)
                     });
+                    console.log('API response status:', response.status);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('API error:', errorText);
+                    }
                 }
             }
 
