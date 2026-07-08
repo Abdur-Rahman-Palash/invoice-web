@@ -150,8 +150,4 @@ const Storage = {
     }
 };
 
-// Initialize storage defaults
-Storage.initializeDefaults().then(() => {
-    console.log('Storage initialized with database data');
-});
 window.Storage = Storage;

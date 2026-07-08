@@ -4,16 +4,21 @@ const App = {
     currentPage: 'dashboard',
     pageHistory: [],
 
-    init() {
+    async init() {
         this.bindNavigation();
         this.bindMobileMenu();
         this.bindDiscountTaxEvents();
         this.bindSettingsEvents();
         this.insertBackButtons();
         
-        // Initialize all modules
+        // Wait for storage to be initialized with database data
+        await Storage.initializeDefaults();
+        
+        // Initialize all modules after data is loaded
         Invoice.init();
         Product.init();
+        Dashboard.init();
+        Payment.init();
     },
 
     insertBackButtons() {
