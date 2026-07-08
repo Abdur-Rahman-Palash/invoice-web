@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { saveInvoice, getInvoice, getAllInvoices, deleteInvoice } = require('./invoice-db');
+const { saveProduct, saveProducts, getAllProducts, deleteProduct } = require('./product-db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,47 @@ app.delete('/api/invoices/:id', async (req, res) => {
     res.json({ success: true, deleted: result });
   } catch (error) {
     console.error('Error deleting invoice:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Save product or products
+app.post('/api/products', async (req, res) => {
+  try {
+    const payload = req.body;
+    let result;
+
+    if (Array.isArray(payload)) {
+      result = await saveProducts(payload);
+    } else {
+      result = await saveProduct(payload);
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Error saving product(s):', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get all products
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await getAllProducts();
+    res.json({ success: true, data: products });
+  } catch (error) {
+    console.error('Error getting products:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete product
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const deleted = await deleteProduct(req.params.id);
+    res.json({ success: true, deleted });
+  } catch (error) {
+    console.error('Error deleting product:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

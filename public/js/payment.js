@@ -19,7 +19,7 @@ const Payment = {
         }
     },
 
-    markAsPaid(invoiceId) {
+    async markAsPaid(invoiceId) {
         const invoices = Storage.get('invoices') || [];
         const invoice = invoices.find(inv => inv.id === invoiceId);
 
@@ -27,7 +27,7 @@ const Payment = {
             invoice.status = 'paid';
             invoice.paidAt = new Date().toISOString();
             invoice.updatedAt = new Date().toISOString();
-            Storage.set('invoices', invoices);
+            await Storage.set('invoices', invoices);
 
             // Update all displays
             this.updateStats();

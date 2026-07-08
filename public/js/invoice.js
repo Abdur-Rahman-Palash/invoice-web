@@ -408,7 +408,7 @@ const Invoice = {
                 updatedAt: new Date().toISOString()
             };
             invoices.push(invoiceToSave);
-            Storage.set('invoices', invoices);
+            await Storage.set('invoices', invoices);
             this.currentInvoice = invoiceToSave;
         } else {
             Object.assign(existingInvoice, this.currentInvoice, {
@@ -416,27 +416,8 @@ const Invoice = {
                 createdAt: existingInvoice.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             });
-            Storage.set('invoices', invoices);
+            await Storage.set('invoices', invoices);
             this.currentInvoice = existingInvoice;
-        }
-
-        // Save to database
-        try {
-            const response = await fetch('http://localhost:3000/api/invoices', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(this.currentInvoice)
-            });
-            
-            if (response.ok) {
-                console.log('Invoice saved to database successfully');
-            } else {
-                console.error('Failed to save invoice to database');
-            }
-        } catch (error) {
-            console.error('Error saving invoice to database:', error);
         }
 
         Dashboard.updateStats();
@@ -673,7 +654,7 @@ const Invoice = {
         if (confirm('Are you sure you want to delete this invoice?')) {
             const invoices = Storage.get('invoices') || [];
             const filtered = invoices.filter(inv => inv.id !== invoiceId);
-            Storage.set('invoices', filtered);
+            await Storage.set('invoices', filtered);
             
             // Delete from database
             try {

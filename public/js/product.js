@@ -91,7 +91,7 @@ const Product = {
         }
     },
 
-    handleSaveProduct(e) {
+    async handleSaveProduct(e) {
         e.preventDefault();
 
         const name = document.getElementById('product-name').value;
@@ -128,17 +128,17 @@ const Product = {
             products.push(newProduct);
         }
 
-        Storage.set('products', products);
+        await Storage.set('products', products);
         this.closeModal();
         this.renderProducts();
         Dashboard.updateStats();
     },
 
-    deleteProduct(productId) {
+    async deleteProduct(productId) {
         if (confirm('Are you sure you want to delete this product?')) {
             const products = Storage.get('products') || [];
             const filtered = products.filter(p => p.id !== productId);
-            Storage.set('products', filtered);
+            await Storage.set('products', filtered);
             
             this.renderProducts();
             Dashboard.updateStats();

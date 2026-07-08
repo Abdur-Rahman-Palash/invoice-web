@@ -1,65 +1,70 @@
-// LocalStorage Utility Functions
+// Database Storage Utility Functions (Neon Database via API)
+
+const API_BASE_URL = 'http://localhost:3000/api';
 
 const Storage = {
-    // Get data from localStorage
+    // Cache for local data
+    cache: {
+        invoices: [],
+        products: [],
+        settings: {
+            companyName: 'Your Company Name',
+            companyAddress: 'Your Address',
+            companyPhone: 'Your Phone',
+            companyEmail: 'your@email.com',
+            ownerName: '',
+            ownerTitle: '',
+            currency: 'USD',
+            taxRate: 0
+        }
+    },
+
+    // Get data from cache (sync for compatibility)
     get(key) {
-        try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error(`Error getting ${key} from localStorage:`, error);
-            return null;
-        }
+        return this.cache[key] || null;
     },
 
-    // Set data to localStorage
-    set(key, value) {
+    // Set data to cache and database (async)
+    async set(key, value) {
+        this.cache[key] = value;
+        
         try {
-            localStorage.setItem(key, JSON.stringify(value));
-            return true;
+            if (key === 'invoices') {
+                for (const invoice of value) {
+                    await fetch(`${API_BASE_URL}/invoices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(invoice)
+                    });
+                }
+            }
+
+            if (key === 'products') {
+                await fetch(`${API_BASE_URL}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(value)
+                });
+            }
         } catch (error) {
-            console.error(`Error setting ${key} to localStorage:`, error);
-            return false;
+            console.error(`Error saving ${key} to database:`, error);
         }
+        
+        return true;
     },
 
-    // Remove data from localStorage
-    remove(key) {
-        try {
-            localStorage.removeItem(key);
-            return true;
-        } catch (error) {
-            console.error(`Error removing ${key} from localStorage:`, error);
-            return false;
-        }
+    // Remove data from cache and database (async)
+    async remove(key) {
+        this.cache[key] = null;
+        return true;
     },
 
-    // Clear all data from localStorage
+    // Clear all data
     clear() {
-        try {
-            localStorage.clear();
-            return true;
-        } catch (error) {
-            console.error('Error clearing localStorage:', error);
-            return false;
-        }
-    },
-
-    // Initialize default data if not exists
-    initializeDefaults() {
-        // Initialize invoices array
-        if (!this.get('invoices')) {
-            this.set('invoices', []);
-        }
-
-        // Initialize products array
-        if (!this.get('products')) {
-            this.set('products', []);
-        }
-
-        // Initialize settings
-        if (!this.get('settings')) {
-            this.set('settings', {
+        this.cache = {
+            invoices: [],
+            products: [],
+            settings: {
                 companyName: 'Your Company Name',
                 companyAddress: 'Your Address',
                 companyPhone: 'Your Phone',
@@ -68,11 +73,84 @@ const Storage = {
                 ownerTitle: '',
                 currency: 'USD',
                 taxRate: 0
-            });
+            }
+        };
+        return true;
+    },
+
+    // Initialize default data
+    async initializeDefaults() {
+        // Load invoices from database
+        try {
+            const response = await fetch(`${API_BASE_URL}/invoices`);
+            const data = await response.json();
+            if (data.success) {
+                this.cache.invoices = data.data;
+            }
+        } catch (error) {
+            console.error('Error loading invoices from database:', error);
+            this.cache.invoices = [];
+        }
+
+        // Load products from database
+        try {
+            const response = await fetch(`${API_BASE_URL}/products`);
+            const data = await response.json();
+            if (data.success) {
+                this.cache.products = data.data;
+            }
+        } catch (error) {
+            console.error('Error loading products from database:', error);
+            if (!this.cache.products) {
+                this.cache.products = [];
+            }
+        }
+
+        // Initialize products array if missing
+        if (!this.cache.products) {
+            this.cache.products = [];
+        }
+
+        // Initialize settings
+        if (!this.cache.settings) {
+            this.cache.settings = {
+                companyName: 'Your Company Name',
+                companyAddress: 'Your Address',
+                companyPhone: 'Your Phone',
+                companyEmail: 'your@email.com',
+                ownerName: '',
+                ownerTitle: '',
+                currency: 'USD',
+                taxRate: 0
+            };
+        }
+    },
+
+    // Refresh data from database
+    async refresh() {
+        try {
+            const [invoiceResponse, productResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/invoices`),
+                fetch(`${API_BASE_URL}/products`)
+            ]);
+
+            const invoicesData = await invoiceResponse.json();
+            if (invoicesData.success) {
+                this.cache.invoices = invoicesData.data;
+            }
+
+            const productsData = await productResponse.json();
+            if (productsData.success) {
+                this.cache.products = productsData.data;
+            }
+        } catch (error) {
+            console.error('Error refreshing data from database:', error);
         }
     }
 };
 
 // Initialize storage defaults
-Storage.initializeDefaults();
+Storage.initializeDefaults().then(() => {
+    console.log('Storage initialized with database data');
+});
 window.Storage = Storage;
