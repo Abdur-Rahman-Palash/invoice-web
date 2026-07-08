@@ -29,7 +29,7 @@ app.get('/api/invoices', async (req, res) => {
     res.json({ success: true, data: invoices });
   } catch (error) {
     console.error('Error getting invoices:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message, details: error.stack });
   }
 });
 
