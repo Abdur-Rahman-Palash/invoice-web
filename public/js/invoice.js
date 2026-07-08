@@ -658,7 +658,8 @@ const Invoice = {
             
             // Delete from database
             try {
-                const response = await fetch(`http://localhost:3000/api/invoices/${invoiceId}`, {
+                const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'https://your-deployed-server-url.com/api';
+                const response = await fetch(`${API_BASE_URL}/invoices/${invoiceId}`, {
                     method: 'DELETE'
                 });
                 

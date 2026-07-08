@@ -1,6 +1,7 @@
 // Database Storage Utility Functions (Neon Database via API)
 
-const API_BASE_URL = 'http://localhost:3000/api';
+// Use config file for API URL
+const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'https://your-deployed-server-url.com/api';
 
 const Storage = {
     // Cache for local data
