@@ -87,10 +87,18 @@ const Storage = {
             const data = await response.json();
             if (data.success) {
                 this.cache.invoices = data.data;
+                console.log('Loaded invoices from database:', this.cache.invoices.length);
+            } else {
+                console.error('Failed to load invoices:', data.error);
+                if (!this.cache.invoices) {
+                    this.cache.invoices = [];
+                }
             }
         } catch (error) {
             console.error('Error loading invoices from database:', error);
-            this.cache.invoices = [];
+            if (!this.cache.invoices) {
+                this.cache.invoices = [];
+            }
         }
 
         // Load products from database
@@ -99,12 +107,23 @@ const Storage = {
             const data = await response.json();
             if (data.success) {
                 this.cache.products = data.data;
+                console.log('Loaded products from database:', this.cache.products.length);
+            } else {
+                console.error('Failed to load products:', data.error);
+                if (!this.cache.products) {
+                    this.cache.products = [];
+                }
             }
         } catch (error) {
             console.error('Error loading products from database:', error);
             if (!this.cache.products) {
                 this.cache.products = [];
             }
+        }
+
+        // Initialize invoices array if missing
+        if (!this.cache.invoices) {
+            this.cache.invoices = [];
         }
 
         // Initialize products array if missing
