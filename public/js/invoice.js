@@ -151,7 +151,6 @@ const Invoice = {
         this.resetForm();
         // Small delay to ensure DOM is ready after navigation
         setTimeout(() => {
-            this.generateInvoiceId();
             this.addProductRow();
             document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
         }, 50);
@@ -188,7 +187,7 @@ const Invoice = {
     generateInvoiceId() {
         const invoices = Storage.get('invoices') || [];
         let maxId = 0;
-        
+
         // Find the maximum existing invoice ID
         invoices.forEach(inv => {
             const match = inv.id.match(/INV-(\d+)/);
@@ -199,16 +198,9 @@ const Invoice = {
                 }
             }
         });
-        
+
         const nextId = maxId + 1;
-        const invoiceId = `INV-${String(nextId).padStart(4, '0')}`;
-        const invoiceIdField = document.getElementById('invoice-id');
-        if (invoiceIdField) {
-            invoiceIdField.value = invoiceId;
-            console.log('Invoice ID set:', invoiceId);
-        } else {
-            console.error('Invoice ID field not found');
-        }
+        return `INV-${String(nextId).padStart(4, '0')}`;
     },
 
     addProductRow(productData = {}) {
@@ -396,6 +388,36 @@ const Invoice = {
 
     async finalizeInvoice() {
         if (!this.currentInvoice) return;
+
+        // Check stock availability before finalizing
+        const products = Storage.get('products') || [];
+        const stockErrors = [];
+
+        for (const item of this.currentInvoice.products) {
+            const product = products.find(p => p.name === item.name);
+            if (product) {
+                if (item.quantity > product.stock) {
+                    stockErrors.push({
+                        name: item.name,
+                        requested: item.quantity,
+                        available: product.stock
+                    });
+                }
+            }
+        }
+
+        if (stockErrors.length > 0) {
+            const errorMessage = stockErrors.map(err =>
+                `${err.name}: Requested ${err.requested}, Available ${err.available}`
+            ).join('\n');
+            alert(`Insufficient stock for the following products:\n\n${errorMessage}\n\nPlease reduce quantities or update product stock.`);
+            return;
+        }
+
+        // Generate invoice ID only when finalizing (not when opening form)
+        if (!this.currentInvoice.id) {
+            this.currentInvoice.id = this.generateInvoiceId();
+        }
 
         const invoices = Storage.get('invoices') || [];
         const existingInvoice = invoices.find(inv => inv.id === this.currentInvoice.id);
