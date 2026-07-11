@@ -151,6 +151,7 @@ const Invoice = {
         this.resetForm();
         // Small delay to ensure DOM is ready after navigation
         setTimeout(() => {
+            this.showPreviewInvoiceId();
             this.addProductRow();
             document.getElementById('invoice-date').value = new Date().toISOString().split('T')[0];
         }, 50);
@@ -181,6 +182,32 @@ const Invoice = {
         const invoiceIdField = document.getElementById('invoice-id');
         if (invoiceIdField) {
             invoiceIdField.value = '';
+        }
+    },
+
+    showPreviewInvoiceId() {
+        const invoices = Storage.get('invoices') || [];
+        let maxId = 0;
+
+        // Find the maximum existing invoice ID
+        invoices.forEach(inv => {
+            const match = inv.id.match(/INV-(\d+)/);
+            if (match) {
+                const idNum = parseInt(match[1], 10);
+                if (idNum > maxId) {
+                    maxId = idNum;
+                }
+            }
+        });
+
+        const nextId = maxId + 1;
+        const invoiceId = `INV-${String(nextId).padStart(4, '0')}`;
+        const invoiceIdField = document.getElementById('invoice-id');
+        if (invoiceIdField) {
+            invoiceIdField.value = invoiceId;
+            console.log('Preview Invoice ID set:', invoiceId);
+        } else {
+            console.error('Invoice ID field not found');
         }
     },
 
@@ -417,6 +444,12 @@ const Invoice = {
         // Generate invoice ID only when finalizing (not when opening form)
         if (!this.currentInvoice.id) {
             this.currentInvoice.id = this.generateInvoiceId();
+        }
+
+        // Update invoice ID field display
+        const invoiceIdField = document.getElementById('invoice-id');
+        if (invoiceIdField) {
+            invoiceIdField.value = this.currentInvoice.id;
         }
 
         const invoices = Storage.get('invoices') || [];
