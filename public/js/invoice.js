@@ -32,6 +32,12 @@ const Invoice = {
         // Modal and footer buttons
         this.bindModalButtons();
 
+        // Add payment button on form
+        const addPaymentBtn = document.getElementById('add-payment-btn');
+        if (addPaymentBtn) {
+            addPaymentBtn.addEventListener('click', () => this.handleAddPayment());
+        }
+
         // Search and filter
         const searchBtn = document.getElementById('invoice-search-btn');
         if (searchBtn) {
@@ -100,6 +106,7 @@ const Invoice = {
         const downloadInvoiceBtn = document.getElementById('download-invoice');
         const editInvoiceBtn = document.getElementById('edit-invoice');
         const finalizeInvoiceBtn = document.getElementById('finalize-invoice');
+        const addPaymentBtn = document.getElementById('add-payment-btn');
 
         if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.closeModal());
         if (closeModalFooterBtn) closeModalFooterBtn.addEventListener('click', () => this.closeModal());
@@ -112,6 +119,25 @@ const Invoice = {
                 this.finalizeInvoice();
             });
         }
+        if (addPaymentBtn) {
+            addPaymentBtn.addEventListener('click', () => this.handleAddPayment());
+        }
+    },
+
+    handleAddPayment() {
+        const paymentAmount = prompt('Enter payment amount:');
+        if (paymentAmount === null || paymentAmount === '') return;
+
+        const amount = parseFloat(paymentAmount);
+        if (isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid payment amount');
+            return;
+        }
+
+        const paidInput = document.getElementById('paid');
+        const currentPaid = parseFloat(paidInput.value) || 0;
+        paidInput.value = (currentPaid + amount).toFixed(2);
+        this.calculateTotals();
     },
 
     showFinalModalButtons() {
@@ -380,18 +406,15 @@ const Invoice = {
             const price = parseFloat(row.querySelector('.product-price').value) || 0;
             const quantity = parseFloat(row.querySelector('.product-quantity').value) || 0;
             const lineTotal = price * quantity;
-            row.querySelector('.product-line-total').textContent = `$${lineTotal.toFixed(2)}`;
+            row.querySelector('.product-line-total').textContent = `BDT ${lineTotal.toFixed(2)}`;
             subtotal += lineTotal;
         });
 
-        const discount = parseFloat(document.getElementById('discount').value) || 0;
-        const taxRate = parseFloat(document.getElementById('tax').value) || 0;
-        const taxableAmount = Math.max(subtotal - discount, 0);
-        const taxAmount = taxableAmount * (taxRate / 100);
-        const grandTotal = taxableAmount + taxAmount;
+        const paid = parseFloat(document.getElementById('paid').value) || 0;
+        const payable = Math.max(subtotal - paid, 0);
 
-        document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-        document.getElementById('grand-total').textContent = `$${grandTotal.toFixed(2)}`;
+        document.getElementById('subtotal').textContent = `BDT ${subtotal.toFixed(2)}`;
+        document.getElementById('grand-total').textContent = `BDT ${payable.toFixed(2)}`;
     },
 
     handleSaveInvoice(e) {
@@ -527,11 +550,8 @@ const Invoice = {
         }
 
         const subtotal = products.reduce((sum, p) => sum + p.total, 0);
-        const discount = parseFloat(document.getElementById('discount').value) || 0;
-        const taxRate = parseFloat(document.getElementById('tax').value) || 0;
-        const taxableAmount = Math.max(subtotal - discount, 0);
-        const taxAmount = taxableAmount * (taxRate / 100);
-        const grandTotal = taxableAmount + taxAmount;
+        const paid = parseFloat(document.getElementById('paid').value) || 0;
+        const payable = Math.max(subtotal - paid, 0);
 
         return {
             id: invoiceId,
@@ -542,10 +562,8 @@ const Invoice = {
             customerEmail: document.getElementById('customer-email').value,
             products,
             subtotal,
-            discount,
-            taxRate,
-            taxAmount,
-            grandTotal
+            paid,
+            payable
         };
     },
 
@@ -561,8 +579,7 @@ const Invoice = {
         document.getElementById('customer-address').value = invoice.customerAddress || '';
         document.getElementById('customer-contact').value = invoice.customerContact || '';
         document.getElementById('customer-email').value = invoice.customerEmail || '';
-        document.getElementById('discount').value = invoice.discount || 0;
-        document.getElementById('tax').value = invoice.taxRate || 0;
+        document.getElementById('paid').value = invoice.paid || 0;
 
         if (invoice.products && invoice.products.length) {
             invoice.products.forEach(product => this.addProductRow(product));
@@ -653,23 +670,17 @@ const Invoice = {
                     <div class="footer-right">
                         <div class="total-item">
                             <span class="total-label">Subtotal</span>
-                            <span class="total-value">$${invoice.subtotal.toFixed(2)}</span>
+                            <span class="total-value">BDT ${invoice.subtotal.toFixed(2)}</span>
                         </div>
-                        ${invoice.discount > 0 ? `
+                        ${invoice.paid > 0 ? `
                         <div class="total-item">
-                            <span class="total-label">Discount</span>
-                            <span class="total-value">-$${invoice.discount.toFixed(2)}</span>
-                        </div>
-                        ` : ''}
-                        ${invoice.taxRate > 0 ? `
-                        <div class="total-item">
-                            <span class="total-label">Tax (${invoice.taxRate}%)</span>
-                            <span class="total-value">$${invoice.taxAmount.toFixed(2)}</span>
+                            <span class="total-label">Paid</span>
+                            <span class="total-value">BDT ${invoice.paid.toFixed(2)}</span>
                         </div>
                         ` : ''}
                         <div class="total-grand">
-                            <span class="total-label">Total</span>
-                            <span class="total-value">$${invoice.grandTotal.toFixed(2)}</span>
+                            <span class="total-label">Payable</span>
+                            <span class="total-value">BDT ${invoice.payable.toFixed(2)}</span>
                         </div>
                         ${hasSignature ? `
                         <div class="signature-section">
