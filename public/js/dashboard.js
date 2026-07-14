@@ -27,38 +27,34 @@ const Dashboard = {
     renderRecentInvoices() {
         const invoices = Storage.get('invoices') || [];
         const tbody = document.getElementById('recent-invoices-body');
-        
+
         if (!tbody) return;
-        
+
         if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No invoices yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="no-data">No invoices yet</td></tr>';
             return;
         }
 
         // Get last 5 invoices
         const recentInvoices = invoices.slice(-5).reverse();
 
-        tbody.innerHTML = recentInvoices.map(inv => `
+        tbody.innerHTML = recentInvoices.map(inv => {
+            const isPaid = inv.status === 'paid';
+            const statusClass = isPaid ? 'status-paid' : 'status-due';
+            const statusText = isPaid ? 'Paid' : 'Due';
+            const cursorStyle = isPaid ? 'default' : 'pointer';
+            const clickHandler = isPaid ? '' : `onclick="Invoice.editInvoice('${inv.id}')"`;
+
+            return `
             <tr>
                 <td>${inv.id}</td>
                 <td>${inv.customerName}</td>
                 <td>${this.formatDate(inv.date)}</td>
-                <td>$${inv.grandTotal.toFixed(2)}</td>
-                <td><span class="status-badge status-${inv.status}">${inv.status}</span></td>
-                <td>
-                    ${inv.status === 'pending' 
-                        ? `<button class="btn btn-sm btn-primary mark-paid-btn" data-invoice-id="${inv.id}">Mark as Paid</button>`
-                        : `<span class="text-success">✓ Paid</span>`
-                    }
-                </td>
+                <td>BDT ${(inv.payable || inv.grandTotal || 0).toFixed(2)}</td>
+                <td><span class="status-badge ${statusClass}" style="cursor: ${cursorStyle}" ${clickHandler}>${statusText}</span></td>
             </tr>
-        `).join('');
-
-        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                Payment.markAsPaid(e.target.dataset.invoiceId);
-            });
-        });
+        `;
+        }).join('');
     },
 
     bindEvents() {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Office Management System</title>
+    <title>Invoice Management System</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -15,6 +15,10 @@
                     <h1>Office Management</h1>
                 </div>
                 <form id="login-form" class="login-form">
+                    <div class="form-group" id="name-group" style="display: none;">
+                        <label for="full-name">Full Name</label>
+                        <input type="text" id="full-name" name="full-name" placeholder="Enter your full name">
+                    </div>
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required placeholder="Enter your email address">
@@ -22,10 +26,11 @@
                     <div class="form-group">
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" required placeholder="Enter your password" minlength="6">
+                        <small style="color: #6b7280; font-size: 0.875rem;">Password must be at least 6 characters</small>
                     </div>
                     <div id="auth-message" class="auth-message hidden" role="alert"></div>
                     <div class="login-actions">
-                        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+                        <button type="submit" class="btn btn-primary btn-full" id="signin-btn">Sign In</button>
                         <button type="button" class="btn btn-outline btn-full" id="signup-btn">Create Account</button>
                         <button type="button" class="btn btn-google btn-full" id="google-signin-btn">Continue with Google</button>
                     </div>
@@ -40,9 +45,9 @@
         <nav class="navbar">
             <div class="nav-container">
                 <div class="nav-brand">
-                   <h2 class="logo">
-  <a href="/">Office Management System</a>
-</h2>
+                   <a href="/" class="logo-link">
+                       <img src="exelyn.jpeg" alt="Logo" class="logo-image">
+                   </a>
                 </div>
                
                 <div class="nav-actions">
@@ -484,17 +489,21 @@
                 <div class="modal-body">
                     <form id="product-form">
                         <div class="form-group">
+                            <label for="product-code">Product Code *</label>
+                            <input type="text" id="product-code" required placeholder="Enter product code (e.g., P-1001)">
+                        </div>
+                        <div class="form-group">
                             <label for="product-name">Product Name *</label>
                             <input type="text" id="product-name" required placeholder="Enter product name">
                         </div>
                         <div class="form-group">
                             <label for="product-category">Category *</label>
-                            <select id="product-category" required>
-                                <option value="">Select category</option>
+                            <input type="text" id="product-category" required placeholder="Select or type category" list="category-list">
+                            <datalist id="category-list">
                                 <option value="Shoe">Shoe</option>
                                 <option value="Bag">Bag</option>
                                 <option value="Sanitary">Sanitary</option>
-                            </select>
+                            </datalist>
                         </div>
                         <div class="form-group">
                             <label for="product-price">Price (BDT) *</label>
@@ -524,34 +533,76 @@
                     <h3 style="margin-bottom: var(--spacing-lg); font-size: var(--font-size-lg);">Company Information</h3>
                     <form id="settings-form">
                         <div class="form-group">
-                            <label for="company-name">Company Name</label>
+                            <label for="company-logo">Company Logo</label>
+                            <input type="file" id="company-logo" accept="image/png,image/jpeg,image/jpg,image/webp" placeholder="Upload company logo">
+                            <small style="color: #6b7280; font-size: 0.875rem;">Max size: 5MB. Supported formats: PNG, JPG, JPEG, WEBP</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="company-name">Company Name *</label>
                             <input type="text" id="company-name" required placeholder="Enter company name">
                         </div>
                         <div class="form-group">
-                            <label for="company-address">Company Address</label>
-                            <input type="text" id="company-address" placeholder="Enter company address">
+                            <label for="company-address">Company Address *</label>
+                            <input type="text" id="company-address" required placeholder="Enter company address">
                         </div>
                         <div class="form-group">
-                            <label for="company-phone">Phone</label>
-                            <input type="text" id="company-phone" placeholder="Enter phone number">
+                            <label for="company-phone">Phone Number *</label>
+                            <input type="text" id="company-phone" required placeholder="Enter phone number">
                         </div>
                         <div class="form-group">
-                            <label for="company-email">Email</label>
-                            <input type="email" id="company-email" placeholder="Enter email address">
+                            <label for="company-email">Email Address *</label>
+                            <input type="email" id="company-email" required placeholder="Enter email address">
                         </div>
                         <div class="form-group">
-                            <label for="owner-name">Owner Name</label>
-                            <input type="text" id="owner-name" placeholder="Enter owner name (for signature)">
+                            <label for="company-website">Website (Optional)</label>
+                            <input type="url" id="company-website" placeholder="Enter website URL">
                         </div>
                         <div class="form-group">
-                            <label for="owner-title">Owner Title</label>
-                            <input type="text" id="owner-title" placeholder="e.g., CEO, Owner, President">
+                            <label for="tax-number">Tax/VAT Number (Optional)</label>
+                            <input type="text" id="tax-number" placeholder="Enter tax or VAT number">
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline" id="cancel-settings">Cancel</button>
                     <button class="btn btn-primary" id="save-settings">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Modal -->
+        <div id="payment-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add Payment</h2>
+                    <button class="modal-close" id="close-payment-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="payment-form">
+                        <div class="form-group">
+                            <label for="payment-amount">Payment Amount *</label>
+                            <input type="number" id="payment-amount" required min="0.01" step="0.01" placeholder="Enter payment amount">
+                        </div>
+                        <div class="form-group">
+                            <label for="payment-date">Payment Date *</label>
+                            <input type="date" id="payment-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="payment-method">Payment Method *</label>
+                            <select id="payment-method" required>
+                                <option value="">Select payment method</option>
+                                <option value="bkash">bKash</option>
+                                <option value="nagad">Nagad</option>
+                                <option value="rocket">Rocket</option>
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="cancel-payment">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-payment">Save Payment</button>
                 </div>
             </div>
         </div>

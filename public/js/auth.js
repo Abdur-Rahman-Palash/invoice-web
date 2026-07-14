@@ -1,16 +1,18 @@
 const Auth = {
     currentUser: null,
+    isSignupMode: false,
 
     async init() {
         this.bindEvents();
 
         if (!window.firebaseAuth) {
             console.log("Running in demo mode - no authentication needed");
-            // Auto login in demo mode
+            // Auto login in demo mode (as owner for testing)
             this.currentUser = {
                 id: "demo-user-123",
-                name: "Demo User",
-                email: "demo@example.com",
+                name: "Demo Owner",
+                email: "abdurrahmanpalashbd@gmail.com",
+                role: "owner",
                 loginTime: new Date().toISOString()
             };
             const storage = this.getStorage();
@@ -41,10 +43,15 @@ const Auth = {
             const storage = this.getStorage();
 
             if (user) {
+                // Define owner email (you can change this to your owner email)
+                const ownerEmail = "abdurrahmanpalashbd@gmail.com";
+                const isOwner = user.email === ownerEmail;
+
                 this.currentUser = {
                     id: user.uid,
                     name: user.displayName || user.email || "User",
                     email: user.email || "",
+                    role: isOwner ? "owner" : "user",
                     loginTime: new Date().toISOString()
                 };
 
@@ -67,14 +74,25 @@ const Auth = {
         const loginForm = document.getElementById("login-form");
         const logoutBtn = document.getElementById("logout-btn");
         const signupBtn = document.getElementById("signup-btn");
+        const signinBtn = document.getElementById("signin-btn");
         const googleSigninBtn = document.getElementById("google-signin-btn");
 
         if (loginForm) {
-            loginForm.addEventListener("submit", (e) => this.handleLogin(e));
+            loginForm.addEventListener("submit", (e) => {
+                if (this.isSignupMode) {
+                    this.handleSignup(e);
+                } else {
+                    this.handleLogin(e);
+                }
+            });
         }
 
         if (signupBtn) {
-            signupBtn.addEventListener("click", () => this.handleSignup());
+            signupBtn.addEventListener("click", () => this.toggleSignupMode(true));
+        }
+
+        if (signinBtn) {
+            signinBtn.addEventListener("click", () => this.toggleSignupMode(false));
         }
 
         if (googleSigninBtn) {
@@ -86,10 +104,42 @@ const Auth = {
         }
     },
 
+    toggleSignupMode(isSignup) {
+        this.isSignupMode = isSignup;
+        const nameGroup = document.getElementById("name-group");
+        const signupBtn = document.getElementById("signup-btn");
+        const signinBtn = document.getElementById("signin-btn");
+        const formTitle = document.querySelector(".login-header h1");
+
+        if (isSignup) {
+            nameGroup.style.display = "block";
+            signupBtn.style.display = "none";
+            signinBtn.style.display = "block";
+            signinBtn.textContent = "Sign In";
+            formTitle.textContent = "Create Account";
+        } else {
+            nameGroup.style.display = "none";
+            signupBtn.style.display = "block";
+            signinBtn.style.display = "none";
+            formTitle.textContent = "Office Management";
+        }
+
+        this.clearMessage();
+    },
+
     getCredentials() {
+        const fullName = document.getElementById("full-name").value.trim();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
-        return { email, password };
+        return { fullName, email, password };
+    },
+
+    validatePassword(password) {
+        // Password must be at least 6 characters
+        if (password.length < 6) {
+            return "Password must be at least 6 characters";
+        }
+        return null;
     },
 
     async handleLogin(e) {
@@ -102,6 +152,7 @@ const Auth = {
                 id: "demo-user-123",
                 name: email.split('@')[0] || "Demo User",
                 email: email || "demo@example.com",
+                role: "owner",
                 loginTime: new Date().toISOString()
             };
             const storage = this.getStorage();
@@ -116,20 +167,33 @@ const Auth = {
         }
 
         await this.runAuthAction(async () => {
-            await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+            console.log("=== Starting Login Flow ===");
+            console.log("Email:", email);
+
+            // Use only Firebase Authentication for login
+            console.log("Attempting Firebase Auth login...");
+            const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+            console.log("Firebase Auth login successful");
+            console.log("User ID:", userCredential.user.uid);
+            console.log("User email:", userCredential.user.email);
+            console.log("Display name:", userCredential.user.displayName);
+
+            console.log("=== Login Flow Complete ===");
             this.showMessage("Signed in successfully.");
         });
     },
 
-    async handleSignup() {
-        const { email, password } = this.getCredentials();
+    async handleSignup(e) {
+        if (e) e.preventDefault();
+        const { fullName, email, password } = this.getCredentials();
 
         if (!window.firebaseAuth) {
             // Demo mode signup
             this.currentUser = {
                 id: "demo-user-123",
-                name: email.split('@')[0] || "Demo User",
+                name: fullName || email.split('@')[0] || "Demo User",
                 email: email || "demo@example.com",
+                role: "owner",
                 loginTime: new Date().toISOString()
             };
             const storage = this.getStorage();
@@ -138,14 +202,47 @@ const Auth = {
             return;
         }
 
-        if (!email || !password) {
-            this.showMessage("Enter your email and password before creating an account.", true);
+        if (!fullName || !email || !password) {
+            this.showMessage("Please fill in all fields (Full Name, Email, Password).", true);
+            return;
+        }
+
+        const passwordError = this.validatePassword(password);
+        if (passwordError) {
+            this.showMessage(passwordError, true);
             return;
         }
 
         await this.runAuthAction(async () => {
-            await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
-            this.showMessage("Account created successfully.");
+            console.log("=== Starting Registration Flow ===");
+            console.log("Email:", email);
+            console.log("Full Name:", fullName);
+
+            // Step 1: Create Firebase Authentication user
+            console.log("Step 1: Creating Firebase Auth user...");
+            const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+            console.log("Firebase Auth user created successfully");
+            console.log("User ID:", userCredential.user.uid);
+            console.log("User email:", userCredential.user.email);
+
+            // Step 2: Update user profile with display name
+            console.log("Step 2: Updating user profile with display name...");
+            await userCredential.user.updateProfile({ displayName: fullName });
+            console.log("Display name updated successfully");
+
+            // Step 3: Sign out the user (they need to login again)
+            console.log("Step 3: Signing out user for manual login...");
+            await window.firebaseAuth.signOut();
+            console.log("User signed out successfully");
+
+            console.log("=== Registration Flow Complete ===");
+            this.showMessage("Account created successfully. Please sign in with your credentials.");
+
+            // Switch to login mode after successful signup
+            setTimeout(() => {
+                this.toggleSignupMode(false);
+                this.clearMessage();
+            }, 2000);
         });
     },
 
@@ -192,22 +289,35 @@ const Auth = {
             }
             await action();
         } catch (error) {
-            this.showMessage(this.getErrorMessage(error), true);
             console.error("Authentication error:", error);
+            console.error("Error code:", error.code);
+            console.error("Error message:", error.message);
+            console.error("Full error object:", JSON.stringify(error, null, 2));
+
+            // Try to get more details from the error
+            if (error.customData) {
+                console.error("Custom error data:", JSON.stringify(error.customData, null, 2));
+            }
+
+            this.showMessage(this.getErrorMessage(error), true);
         }
     },
 
     getErrorMessage(error) {
+        console.error("Firebase Auth Error:", error.code, error.message);
         const messages = {
-            "auth/email-already-in-use": "This email is already registered. Please sign in instead.",
-            "auth/invalid-credential": "Invalid email or password.",
+            "auth/email-already-in-use": "This email is already registered. If you registered with Google, please use Google Sign-In. Otherwise, please sign in with your password.",
+            "auth/invalid-credential": "Invalid email or password. If you registered with Google, please use Google Sign-In instead.",
             "auth/invalid-email": "Enter a valid email address.",
             "auth/missing-password": "Password is required.",
             "auth/popup-closed-by-user": "Google sign-in was closed before completion.",
             "auth/too-many-requests": "Too many attempts. Please try again later.",
             "auth/unauthorized-domain": "This domain is not authorized in Firebase Authentication settings.",
-            "auth/user-not-found": "No account found with this email.",
-            "auth/weak-password": "Password must be at least 6 characters."
+            "auth/user-not-found": "No account found with this email. Please create an account first.",
+            "auth/weak-password": "Password must be at least 6 characters.",
+            "auth/account-exists-with-different-credential": "This email is registered with a different authentication method. Please try signing in with Google.",
+            "auth/wrong-password": "Incorrect password. Please try again.",
+            "auth/operation-not-allowed": "Email/Password authentication is not enabled. Please enable it in Firebase Console."
         };
 
         return messages[error.code] || error.message || "Authentication failed.";
@@ -242,6 +352,16 @@ const Auth = {
 
         if (this.currentUser) {
             document.getElementById("user-name").textContent = this.currentUser.name;
+        }
+
+        // Hide Settings button for non-owner users
+        const settingsBtn = document.getElementById("settings-btn");
+        if (settingsBtn) {
+            if (this.currentUser && this.currentUser.role === "owner") {
+                settingsBtn.style.display = "flex";
+            } else {
+                settingsBtn.style.display = "none";
+            }
         }
 
         const dashboard = this.getDashboard();

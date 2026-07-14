@@ -186,6 +186,18 @@ body {
     font-weight: 700;
 }
 
+.logo-link {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.logo-image {
+    height: 100px;
+    width: 100px;
+    object-fit: contain;
+}
+
 .nav-menu {
     display: flex;
     gap: var(--spacing-lg);
@@ -623,11 +635,24 @@ body {
     border-radius: var(--border-radius-sm);
     font-size: var(--font-size-sm);
     font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .status-paid {
     background: #d1fae5;
     color: #065f46;
+    cursor: default;
+}
+
+.status-due {
+    background: #fef3c7;
+    color: #92400e;
+    cursor: pointer;
+}
+
+.status-due:hover {
+    background: #fde68a;
+    opacity: 0.9;
 }
 
 .status-pending {

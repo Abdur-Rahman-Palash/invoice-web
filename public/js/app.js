@@ -93,14 +93,14 @@ const App = {
 
     openSettings() {
         const settings = Storage.get('settings') || {};
-        
+
         document.getElementById('company-name').value = settings.companyName || '';
         document.getElementById('company-address').value = settings.companyAddress || '';
         document.getElementById('company-phone').value = settings.companyPhone || '';
         document.getElementById('company-email').value = settings.companyEmail || '';
-        document.getElementById('owner-name').value = settings.ownerName || '';
-        document.getElementById('owner-title').value = settings.ownerTitle || '';
-        
+        document.getElementById('company-website').value = settings.companyWebsite || '';
+        document.getElementById('tax-number').value = settings.taxNumber || '';
+
         document.getElementById('settings-modal').classList.remove('hidden');
     },
 
@@ -108,20 +108,54 @@ const App = {
         document.getElementById('settings-modal').classList.add('hidden');
     },
 
-    saveSettings() {
+    async saveSettings() {
+        const logoInput = document.getElementById('company-logo');
+        let companyLogo = null;
+
+        // Handle logo upload
+        if (logoInput.files && logoInput.files[0]) {
+            const file = logoInput.files[0];
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Logo file size must be less than 5MB');
+                return;
+            }
+
+            // Convert to base64
+            companyLogo = await this.fileToBase64(file);
+        } else {
+            // Keep existing logo if no new file uploaded
+            const existingSettings = Storage.get('settings') || {};
+            companyLogo = existingSettings.companyLogo || null;
+        }
+
         const settings = {
             companyName: document.getElementById('company-name').value,
             companyAddress: document.getElementById('company-address').value,
             companyPhone: document.getElementById('company-phone').value,
             companyEmail: document.getElementById('company-email').value,
-            ownerName: document.getElementById('owner-name').value,
-            ownerTitle: document.getElementById('owner-title').value,
-            currency: 'USD',
-            taxRate: 0
+            companyWebsite: document.getElementById('company-website').value,
+            taxNumber: document.getElementById('tax-number').value,
+            companyLogo: companyLogo,
+            currency: 'BDT',
+            taxRate: 0,
+            updatedAt: new Date().toISOString(),
+            updatedBy: Auth.currentUser?.email || 'unknown'
         };
 
-        Storage.set('settings', settings);
+        await Storage.set('settings', settings);
         this.closeSettings();
+        alert('Company settings saved successfully!');
+    },
+
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
     },
 
     navigateTo(page, addToHistory = true) {

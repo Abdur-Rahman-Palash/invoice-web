@@ -94,12 +94,20 @@ const Product = {
     async handleSaveProduct(e) {
         e.preventDefault();
 
+        const productCode = document.getElementById('product-code').value.trim();
         const name = document.getElementById('product-name').value;
         const category = document.getElementById('product-category').value;
         const price = parseFloat(document.getElementById('product-price').value);
         const stock = parseInt(document.getElementById('product-stock').value);
 
+        // Validate product code uniqueness
         const products = Storage.get('products') || [];
+        const existingProductWithCode = products.find(p => p.productCode === productCode && p.id !== this.editingProductId);
+
+        if (existingProductWithCode) {
+            alert('Product code already exists. Please use a unique product code.');
+            return;
+        }
 
         if (this.editingProductId) {
             // Update existing product
@@ -107,6 +115,7 @@ const Product = {
             if (index !== -1) {
                 products[index] = {
                     ...products[index],
+                    productCode,
                     name,
                     category,
                     price,
@@ -118,6 +127,7 @@ const Product = {
             // Add new product
             const newProduct = {
                 id: `PRD-${Date.now()}`,
+                productCode,
                 name,
                 category,
                 price,
@@ -132,6 +142,22 @@ const Product = {
         this.closeModal();
         this.renderProducts();
         Dashboard.updateStats();
+    },
+
+    editProduct(productId) {
+        const products = Storage.get('products') || [];
+        const product = products.find(p => p.id === productId);
+
+        if (product) {
+            this.editingProductId = productId;
+            document.getElementById('product-modal-title').textContent = 'Edit Product';
+            document.getElementById('product-code').value = product.productCode || '';
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-stock').value = product.stock;
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
     },
 
     async deleteProduct(productId) {

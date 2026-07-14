@@ -122,22 +122,93 @@ const Invoice = {
         if (addPaymentBtn) {
             addPaymentBtn.addEventListener('click', () => this.handleAddPayment());
         }
+
+        // Payment modal buttons
+        const closePaymentModalBtn = document.getElementById('close-payment-modal');
+        const cancelPaymentBtn = document.getElementById('cancel-payment');
+        const savePaymentBtn = document.getElementById('save-payment');
+
+        if (closePaymentModalBtn) closePaymentModalBtn.addEventListener('click', () => this.closePaymentModal());
+        if (cancelPaymentBtn) cancelPaymentBtn.addEventListener('click', () => this.closePaymentModal());
+        if (savePaymentBtn) savePaymentBtn.addEventListener('click', () => this.handleSavePayment());
     },
 
     handleAddPayment() {
-        const paymentAmount = prompt('Enter payment amount:');
-        if (paymentAmount === null || paymentAmount === '') return;
+        // Open payment modal
+        const paymentModal = document.getElementById('payment-modal');
+        if (paymentModal) {
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('payment-date').value = today;
 
-        const amount = parseFloat(paymentAmount);
-        if (isNaN(amount) || amount <= 0) {
-            alert('Please enter a valid payment amount');
+            // Clear previous values
+            document.getElementById('payment-amount').value = '';
+            document.getElementById('payment-method').value = '';
+
+            paymentModal.classList.remove('hidden');
+        }
+    },
+
+    async handleSavePayment() {
+        const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
+        const paymentDate = document.getElementById('payment-date').value;
+        const paymentMethod = document.getElementById('payment-method').value;
+
+        // Validation
+        if (!paymentAmount || paymentAmount <= 0) {
+            alert('Please enter a valid payment amount greater than 0');
             return;
         }
 
+        if (!paymentDate) {
+            alert('Please select a payment date');
+            return;
+        }
+
+        if (!paymentMethod) {
+            alert('Please select a payment method');
+            return;
+        }
+
+        // Get current invoice totals
+        const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace('BDT ', '').replace('$', '')) || 0;
+        const currentPaid = parseFloat(document.getElementById('paid').value) || 0;
+        const dueAmount = grandTotal - currentPaid;
+
+        // Check if payment amount exceeds due amount
+        if (paymentAmount > dueAmount) {
+            alert(`Payment amount cannot exceed the due amount of BDT ${dueAmount.toFixed(2)}`);
+            return;
+        }
+
+        // Update paid amount
         const paidInput = document.getElementById('paid');
-        const currentPaid = parseFloat(paidInput.value) || 0;
-        paidInput.value = (currentPaid + amount).toFixed(2);
+        const newPaidAmount = currentPaid + paymentAmount;
+        paidInput.value = newPaidAmount.toFixed(2);
+
+        // Recalculate totals
         this.calculateTotals();
+
+        // Close modal
+        this.closePaymentModal();
+
+        // Show success message
+        alert(`Payment of BDT ${paymentAmount.toFixed(2)} added successfully via ${paymentMethod.replace('_', ' ').toUpperCase()}`);
+
+        // Update invoice status if fully paid
+        if (newPaidAmount >= grandTotal) {
+            const payableInput = document.getElementById('payable');
+            if (payableInput) {
+                payableInput.value = '0.00';
+            }
+        }
+    },
+
+    closePaymentModal() {
+        const paymentModal = document.getElementById('payment-modal');
+        if (paymentModal) {
+            paymentModal.classList.add('hidden');
+        }
     },
 
     showFinalModalButtons() {
@@ -213,21 +284,29 @@ const Invoice = {
 
     showPreviewInvoiceId() {
         const invoices = Storage.get('invoices') || [];
-        let maxId = 0;
 
-        // Find the maximum existing invoice ID
+        // Get today's date in YYMMDD format
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
+        const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Month with leading zero
+        const day = now.getDate().toString().padStart(2, '0'); // Day with leading zero
+        const datePrefix = `${year}${month}${day}`;
+
+        // Find the maximum serial number for today's invoices
+        let maxSerial = 0;
         invoices.forEach(inv => {
-            const match = inv.id.match(/INV-(\d+)/);
-            if (match) {
-                const idNum = parseInt(match[1], 10);
-                if (idNum > maxId) {
-                    maxId = idNum;
+            const match = inv.id.match(/^\d{6}(\d{3})$/);
+            if (match && inv.id.startsWith(datePrefix)) {
+                const serial = parseInt(match[1], 10);
+                if (serial > maxSerial) {
+                    maxSerial = serial;
                 }
             }
         });
 
-        const nextId = maxId + 1;
-        const invoiceId = `INV-${String(nextId).padStart(4, '0')}`;
+        // Increment serial for new invoice
+        const nextSerial = maxSerial + 1;
+        const invoiceId = `${datePrefix}${String(nextSerial).padStart(3, '0')}`;
         const invoiceIdField = document.getElementById('invoice-id');
         if (invoiceIdField) {
             invoiceIdField.value = invoiceId;
@@ -239,21 +318,31 @@ const Invoice = {
 
     generateInvoiceId() {
         const invoices = Storage.get('invoices') || [];
-        let maxId = 0;
 
-        // Find the maximum existing invoice ID
+        // Get today's date in YYMMDD format
+        const now = new Date();
+        const year = now.getFullYear().toString().slice(-2); // Last 2 digits of year
+        const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Month with leading zero
+        const day = now.getDate().toString().padStart(2, '0'); // Day with leading zero
+        const datePrefix = `${year}${month}${day}`;
+
+        // Find the maximum serial number for today's invoices
+        let maxSerial = 0;
         invoices.forEach(inv => {
-            const match = inv.id.match(/INV-(\d+)/);
-            if (match) {
-                const idNum = parseInt(match[1], 10);
-                if (idNum > maxId) {
-                    maxId = idNum;
+            const match = inv.id.match(/^\d{6}(\d{3})$/);
+            if (match && inv.id.startsWith(datePrefix)) {
+                const serial = parseInt(match[1], 10);
+                if (serial > maxSerial) {
+                    maxSerial = serial;
                 }
             }
         });
 
-        const nextId = maxId + 1;
-        return `INV-${String(nextId).padStart(4, '0')}`;
+        // Increment serial for new invoice
+        const nextSerial = maxSerial + 1;
+        const invoiceId = `${datePrefix}${String(nextSerial).padStart(3, '0')}`;
+
+        return invoiceId;
     },
 
     addProductRow(productData = {}) {
@@ -593,25 +682,29 @@ const Invoice = {
     renderInvoicePreview(invoice) {
         const previewContent = document.getElementById('invoice-preview-content');
         const settings = Storage.get('settings') || {};
-        
-        const hasSignature = settings.ownerName || settings.ownerTitle;
-        
+
+        // Render company logo if exists, otherwise show placeholder
+        const companyLogoHtml = settings.companyLogo
+            ? `<img src="${settings.companyLogo}" alt="Company Logo" class="company-logo-image">`
+            : `<div class="logo-icon"></div>`;
+
         previewContent.innerHTML = `
             <div class="invoice-preview">
                 <!-- Header Section - Corporate Layout -->
                 <div class="invoice-header">
                     <div class="invoice-header-left">
                         <div class="company-logo">
-                            <div class="logo-icon"></div>
+                            ${companyLogoHtml}
                             <span class="company-name">${settings.companyName || 'Your Company'}</span>
                         </div>
-                        
+
                         <div class="company-info">
                             <p>${settings.companyAddress || ''}</p>
                             <p>${settings.companyPhone || ''}</p>
                             <p>${settings.companyEmail || ''}</p>
+                            ${settings.companyWebsite ? `<p>${settings.companyWebsite}</p>` : ''}
                         </div>
-                        
+
                         <div class="invoice-to">
                             <p class="invoice-to-label">Bill To</p>
                             <p class="customer-name">${invoice.customerName}</p>
@@ -620,7 +713,7 @@ const Invoice = {
                             <p class="customer-contact">${invoice.customerEmail || ''}</p>
                         </div>
                     </div>
-                    
+
                     <div class="invoice-header-right">
                         <div>
                             <h1 class="invoice-title">INVOICE</h1>
@@ -649,24 +742,9 @@ const Invoice = {
                         </div>
                     `).join('')}
                 </div>
-                
+
                 <!-- Footer Section -->
                 <div class="invoice-footer">
-                    <div class="footer-left">
-                        <div class="payment-section">
-                            <h3>Payment Information</h3>
-                            <p>Bank Transfer</p>
-                            <p><strong>Routing:</strong> 012345678</p>
-                            <p><strong>Account:</strong> 1234567890</p>
-                        </div>
-                        
-                        <div class="terms-section">
-                            <h3>Terms</h3>
-                            <p>Net 30 Days</p>
-                            <p>Thank you for your business!</p>
-                        </div>
-                    </div>
-                    
                     <div class="footer-right">
                         <div class="total-item">
                             <span class="total-label">Subtotal</span>
@@ -682,18 +760,6 @@ const Invoice = {
                             <span class="total-label">Payable</span>
                             <span class="total-value">BDT ${invoice.payable.toFixed(2)}</span>
                         </div>
-                        ${hasSignature ? `
-                        <div class="signature-section">
-                            <div class="signature-line"></div>
-                            ${settings.ownerName ? `<p class="signature-name">${settings.ownerName}</p>` : ''}
-                            ${settings.ownerTitle ? `<p class="signature-title">${settings.ownerTitle}</p>` : ''}
-                        </div>
-                        ` : `
-                        <div class="signature-section">
-                            <div class="signature-line"></div>
-                            <p>Authorized Signature</p>
-                        </div>
-                        `}
                     </div>
                 </div>
             </div>
