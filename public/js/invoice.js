@@ -4,6 +4,8 @@ const Invoice = {
     currentInvoice: null,
     productRows: [],
     editingInvoiceId: null,
+    payments: [],
+    editingPaymentId: null,
 
     init() {
         this.bindEvents();
@@ -127,10 +129,23 @@ const Invoice = {
         const closePaymentModalBtn = document.getElementById('close-payment-modal');
         const cancelPaymentBtn = document.getElementById('cancel-payment');
         const savePaymentBtn = document.getElementById('save-payment');
+        const paymentMethodSelect = document.getElementById('payment-method');
 
         if (closePaymentModalBtn) closePaymentModalBtn.addEventListener('click', () => this.closePaymentModal());
         if (cancelPaymentBtn) cancelPaymentBtn.addEventListener('click', () => this.closePaymentModal());
         if (savePaymentBtn) savePaymentBtn.addEventListener('click', () => this.handleSavePayment());
+        
+        // Show/hide payment note field based on payment method
+        if (paymentMethodSelect) {
+            paymentMethodSelect.addEventListener('change', (e) => {
+                const noteGroup = document.getElementById('payment-note-group');
+                if (e.target.value === 'bank_transfer') {
+                    noteGroup.style.display = 'block';
+                } else {
+                    noteGroup.style.display = 'none';
+                }
+            });
+        }
     },
 
     handleAddPayment() {
@@ -153,6 +168,7 @@ const Invoice = {
         const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
         const paymentDate = document.getElementById('payment-date').value;
         const paymentMethod = document.getElementById('payment-method').value;
+        const paymentNote = document.getElementById('payment-note')?.value || '';
 
         // Validation
         if (!paymentAmount || paymentAmount <= 0) {
@@ -173,33 +189,85 @@ const Invoice = {
         // Get current invoice totals
         const grandTotal = parseFloat(document.getElementById('grand-total').textContent.replace('BDT ', '').replace('$', '')) || 0;
         const currentPaid = parseFloat(document.getElementById('paid').value) || 0;
-        const dueAmount = grandTotal - currentPaid;
 
-        // Check if payment amount exceeds due amount (only if due amount is positive)
-        if (dueAmount > 0 && paymentAmount > dueAmount) {
-            alert(`Payment amount cannot exceed the due amount of BDT ${dueAmount.toFixed(2)}`);
-            return;
-        }
+        if (this.editingPaymentId) {
+            // Edit existing payment
+            const paymentIndex = this.payments.findIndex(p => p.id === this.editingPaymentId);
+            if (paymentIndex !== -1) {
+                const oldPayment = this.payments[paymentIndex];
+                const amountDifference = paymentAmount - oldPayment.amount;
 
-        // Update paid amount
-        const paidInput = document.getElementById('paid');
-        const newPaidAmount = currentPaid + paymentAmount;
-        paidInput.value = newPaidAmount.toFixed(2);
+                // Check if new amount would exceed due amount
+                const dueAmount = grandTotal - currentPaid;
+                if (dueAmount > 0 && paymentAmount > dueAmount + oldPayment.amount) {
+                    alert(`Payment amount cannot exceed the due amount of BDT ${dueAmount.toFixed(2)}`);
+                    return;
+                }
 
-        // Recalculate totals
-        this.calculateTotals();
+                // Update payment
+                this.payments[paymentIndex] = {
+                    ...oldPayment,
+                    amount: paymentAmount,
+                    date: paymentDate,
+                    method: paymentMethod,
+                    note: paymentNote,
+                    updatedAt: new Date().toISOString()
+                };
 
-        // Close modal
-        this.closePaymentModal();
+                // Recalculate totals (will update paid amount from payments array)
+                this.calculateTotals();
 
-        // Show success message
-        alert(`Payment of BDT ${paymentAmount.toFixed(2)} added successfully via ${paymentMethod.replace('_', ' ').toUpperCase()}`);
+                // Display payments
+                this.renderPayments();
 
-        // Update invoice status if fully paid
-        if (newPaidAmount >= grandTotal) {
-            const payableInput = document.getElementById('payable');
-            if (payableInput) {
-                payableInput.value = '0.00';
+                // Close modal
+                this.closePaymentModal();
+
+                // Clear editing state
+                this.editingPaymentId = null;
+
+                // Show success message
+                alert(`Payment updated successfully`);
+            }
+        } else {
+            // Add new payment
+            const dueAmount = grandTotal - currentPaid;
+
+            // Check if payment amount exceeds due amount (only if due amount is positive)
+            if (dueAmount > 0 && paymentAmount > dueAmount) {
+                alert(`Payment amount cannot exceed the due amount of BDT ${dueAmount.toFixed(2)}`);
+                return;
+            }
+
+            // Store payment
+            const payment = {
+                id: Date.now(),
+                amount: paymentAmount,
+                date: paymentDate,
+                method: paymentMethod,
+                note: paymentNote,
+                createdAt: new Date().toISOString()
+            };
+            this.payments.push(payment);
+
+            // Recalculate totals (will update paid amount from payments array)
+            this.calculateTotals();
+
+            // Display payments
+            this.renderPayments();
+
+            // Close modal
+            this.closePaymentModal();
+
+            // Show success message
+            alert(`Payment of BDT ${paymentAmount.toFixed(2)} added successfully via ${paymentMethod.replace('_', ' ').toUpperCase()}`);
+
+            // Update invoice status if fully paid
+            if (newPaidAmount >= grandTotal) {
+                const payableInput = document.getElementById('payable');
+                if (payableInput) {
+                    payableInput.value = '0.00';
+                }
             }
         }
     },
@@ -209,6 +277,14 @@ const Invoice = {
         if (paymentModal) {
             paymentModal.classList.add('hidden');
         }
+        // Clear editing state
+        this.editingPaymentId = null;
+        // Clear form
+        document.getElementById('payment-amount').value = '';
+        document.getElementById('payment-date').value = '';
+        document.getElementById('payment-method').value = '';
+        document.getElementById('payment-note').value = '';
+        document.getElementById('payment-note-group').style.display = 'none';
     },
 
     showFinalModalButtons() {
@@ -273,6 +349,8 @@ const Invoice = {
         this.productRows = [];
         this.editingInvoiceId = null;
         this.currentInvoice = null;
+        this.payments = [];
+        this.editingPaymentId = null;
         document.getElementById('subtotal').textContent = '$0';
         document.getElementById('grand-total').textContent = '$0';
         // Clear invoice ID field separately since it's readonly
@@ -329,9 +407,10 @@ const Invoice = {
         // Find the maximum serial number for today's invoices
         let maxSerial = 0;
         invoices.forEach(inv => {
-            const match = inv.id.match(/^\d{6}(\d{3})$/);
-            if (match && inv.id.startsWith(datePrefix)) {
-                const serial = parseInt(match[1], 10);
+            // Match both formats: YYMMDDXXX and INV-YYMMDDXXX
+            const match = inv.id.match(/(?:INV-)?(\d{6})(\d{3})$/);
+            if (match && match[1] === datePrefix) {
+                const serial = parseInt(match[2], 10);
                 if (serial > maxSerial) {
                     maxSerial = serial;
                 }
@@ -343,6 +422,104 @@ const Invoice = {
         const invoiceId = `${datePrefix}${String(nextSerial).padStart(3, '0')}`;
 
         return invoiceId;
+    },
+
+    renderPayments() {
+        const paymentsContainer = document.getElementById('payments-container');
+        const paymentsList = document.getElementById('payments-list');
+        
+        if (!paymentsContainer || !paymentsList) return;
+        
+        if (this.payments.length === 0) {
+            paymentsList.style.display = 'none';
+            return;
+        }
+        
+        paymentsList.style.display = 'block';
+        
+        const methodLabels = {
+            'bkash': 'bKash',
+            'nagad': 'Nagad',
+            'rocket': 'Rocket',
+            'cash': 'Cash',
+            'bank_transfer': 'Bank Transfer'
+        };
+        
+        paymentsContainer.innerHTML = this.payments.map(payment => `
+            <div class="payment-item">
+                <div class="payment-info">
+                    <div class="payment-amount">BDT ${payment.amount.toFixed(2)}</div>
+                    <div class="payment-method">${methodLabels[payment.method] || payment.method}</div>
+                </div>
+                <div class="payment-details">
+                    <div class="payment-date">${payment.date}</div>
+                    ${payment.note ? `<div class="payment-note">${payment.note}</div>` : ''}
+                </div>
+                <div class="payment-actions">
+                    <button class="btn btn-sm btn-outline edit-payment-btn" data-payment-id="${payment.id}">Edit</button>
+                    <button class="btn btn-sm btn-danger delete-payment-btn" data-payment-id="${payment.id}">Delete</button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Add event listeners for edit and delete buttons
+        paymentsContainer.querySelectorAll('.edit-payment-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const paymentId = parseInt(e.target.dataset.paymentId);
+                this.editPayment(paymentId);
+            });
+        });
+        
+        paymentsContainer.querySelectorAll('.delete-payment-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const paymentId = parseInt(e.target.dataset.paymentId);
+                this.deletePayment(paymentId);
+            });
+        });
+    },
+
+    editPayment(paymentId) {
+        const payment = this.payments.find(p => p.id === paymentId);
+        if (!payment) return;
+
+        // Open payment modal with existing data
+        const paymentModal = document.getElementById('payment-modal');
+        if (paymentModal) {
+            document.getElementById('payment-amount').value = payment.amount;
+            document.getElementById('payment-date').value = payment.date;
+            document.getElementById('payment-method').value = payment.method;
+            
+            // Show note field if bank transfer
+            const noteGroup = document.getElementById('payment-note-group');
+            if (payment.method === 'bank_transfer') {
+                noteGroup.style.display = 'block';
+                document.getElementById('payment-note').value = payment.note || '';
+            } else {
+                noteGroup.style.display = 'none';
+                document.getElementById('payment-note').value = '';
+            }
+
+            // Store the payment ID being edited
+            this.editingPaymentId = paymentId;
+
+            paymentModal.classList.remove('hidden');
+        }
+    },
+
+    deletePayment(paymentId) {
+        if (!confirm('Are you sure you want to delete this payment?')) return;
+
+        const paymentIndex = this.payments.findIndex(p => p.id === paymentId);
+        if (paymentIndex === -1) return;
+
+        // Remove payment from array
+        this.payments.splice(paymentIndex, 1);
+
+        // Recalculate totals (will update paid amount from payments array)
+        this.calculateTotals();
+
+        // Re-render payments
+        this.renderPayments();
     },
 
     addProductRow(productData = {}) {
@@ -499,8 +676,14 @@ const Invoice = {
             subtotal += lineTotal;
         });
 
-        const paid = parseFloat(document.getElementById('paid').value) || 0;
-        const payable = Math.max(subtotal - paid, 0);
+        // Calculate paid from payments array to ensure consistency
+        const totalPaid = this.payments.reduce((sum, payment) => sum + payment.amount, 0);
+        const paidInput = document.getElementById('paid');
+        if (paidInput) {
+            paidInput.value = totalPaid.toFixed(2);
+        }
+
+        const payable = Math.max(subtotal - totalPaid, 0);
 
         document.getElementById('subtotal').textContent = `BDT ${subtotal.toFixed(2)}`;
         document.getElementById('grand-total').textContent = `BDT ${payable.toFixed(2)}`;
@@ -564,6 +747,9 @@ const Invoice = {
             invoiceIdField.value = this.currentInvoice.id;
         }
 
+        // Ensure payments are included in current invoice
+        this.currentInvoice.payments = this.payments;
+
         const invoices = Storage.get('invoices') || [];
         const existingInvoice = invoices.find(inv => inv.id === this.currentInvoice.id);
 
@@ -581,7 +767,8 @@ const Invoice = {
             Object.assign(existingInvoice, this.currentInvoice, {
                 status: existingInvoice.status || 'pending',
                 createdAt: existingInvoice.createdAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                payments: this.payments
             });
             await Storage.set('invoices', invoices);
             this.currentInvoice = existingInvoice;
@@ -665,7 +852,8 @@ const Invoice = {
             products,
             subtotal,
             paid,
-            payable
+            payable,
+            payments: this.payments
         };
     },
 
@@ -683,6 +871,13 @@ const Invoice = {
         document.getElementById('customer-email').value = invoice.customerEmail || '';
         document.getElementById('paid').value = invoice.paid || 0;
 
+        // Load payments from existing invoice
+        if (invoice.payments && invoice.payments.length) {
+            this.payments = [...invoice.payments];
+        } else {
+            this.payments = [];
+        }
+
         if (invoice.products && invoice.products.length) {
             invoice.products.forEach(product => this.addProductRow(product));
         } else {
@@ -690,6 +885,7 @@ const Invoice = {
         }
 
         this.calculateTotals();
+        this.renderPayments();
     },
 
     renderInvoicePreview(invoice) {
@@ -701,79 +897,111 @@ const Invoice = {
             ? `<img src="${settings.companyLogo}" alt="Company Logo" class="company-logo-image">`
             : `<div class="logo-icon"></div>`;
 
+        // Determine status badge
+        const status = invoice.status || 'pending';
+        const statusBadge = `<span class="status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+
         previewContent.innerHTML = `
             <div class="invoice-preview">
-                <!-- Header Section - Corporate Layout -->
+                <!-- Header -->
                 <div class="invoice-header">
-                    <div class="invoice-header-left">
-                        <div class="company-logo">
+                    <div class="header-left">
+                        <div class="company-logo-wrapper">
                             ${companyLogoHtml}
-                            <span class="company-name">${settings.companyName || 'Your Company'}</span>
                         </div>
-
                         <div class="company-info">
-                            <p>${settings.companyAddress || ''}</p>
-                            <p>${settings.companyPhone || ''}</p>
-                            <p>${settings.companyEmail || ''}</p>
-                            ${settings.companyWebsite ? `<p>${settings.companyWebsite}</p>` : ''}
-                        </div>
-
-                        <div class="invoice-to">
-                            <p class="invoice-to-label">Bill To</p>
-                            <p class="customer-name">${invoice.customerName}</p>
-                            <p class="customer-address">${invoice.customerAddress || ''}</p>
-                            <p class="customer-contact">${invoice.customerContact || ''}</p>
-                            <p class="customer-contact">${invoice.customerEmail || ''}</p>
+                            <h1 class="company-name">${settings.companyName || 'Your Company'}</h1>
+                            ${settings.companyAddress ? `<p class="company-detail">${settings.companyAddress}</p>` : ''}
+                            ${settings.companyPhone ? `<p class="company-detail">${settings.companyPhone}</p>` : ''}
+                            ${settings.companyEmail ? `<p class="company-detail">${settings.companyEmail}</p>` : ''}
+                            ${settings.companyWebsite ? `<p class="company-detail">${settings.companyWebsite}</p>` : ''}
                         </div>
                     </div>
-
-                    <div class="invoice-header-right">
-                        <div>
-                            <h1 class="invoice-title">INVOICE</h1>
-                        </div>
-                        <div class="invoice-meta-right">
-                            <p><strong>Invoice #</strong> ${invoice.id}</p>
-                            <p><strong>Date</strong> ${this.formatDate(invoice.date)}</p>
+                    <div class="header-right">
+                        <div class="invoice-title">INVOICE</div>
+                        <div class="invoice-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Invoice Number</span>
+                                <span class="detail-value">${invoice.id}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Date</span>
+                                <span class="detail-value">${this.formatDate(invoice.date)}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status</span>
+                                ${statusBadge}
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Product Table -->
-                <div class="invoice-products">
-                    <div class="product-table-header">
-                        <div class="product-col-description">Description</div>
-                        <div class="product-col-price">Price</div>
-                        <div class="product-col-qty">Qty</div>
-                        <div class="product-col-total">Total</div>
+
+                <!-- Customer Section -->
+                <div class="invoice-section">
+                    <div class="section-title">Bill To</div>
+                    <div class="customer-info">
+                        <div class="customer-name">${invoice.customerName}</div>
+                        ${invoice.customerAddress ? `<div class="customer-detail">${invoice.customerAddress}</div>` : ''}
+                        ${invoice.customerContact ? `<div class="customer-detail">${invoice.customerContact}</div>` : ''}
+                        ${invoice.customerEmail ? `<div class="customer-detail">${invoice.customerEmail}</div>` : ''}
                     </div>
-                    ${invoice.products.map((product, index) => `
-                        <div class="product-table-row ${index % 2 === 1 ? 'row-alt' : ''}">
-                            <div class="product-col-description">${product.name}</div>
-                            <div class="product-col-price">BDT ${product.price.toFixed(2)}</div>
-                            <div class="product-col-qty">${product.quantity}</div>
-                            <div class="product-col-total">BDT ${product.total.toFixed(2)}</div>
-                        </div>
-                    `).join('')}
                 </div>
 
-                <!-- Footer Section -->
-                <div class="invoice-footer">
-                    <div class="footer-right">
-                        <div class="total-item">
+                <!-- Items Table -->
+                <div class="invoice-section invoice-table-section">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th class="col-item">#</th>
+                                <th class="col-description">Description</th>
+                                <th class="col-qty">Qty</th>
+                                <th class="col-price">Unit Price</th>
+                                <th class="col-amount">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invoice.products.map((product, index) => `
+                                <tr>
+                                    <td class="col-item">${index + 1}</td>
+                                    <td class="col-description">${product.name}</td>
+                                    <td class="col-qty">${product.quantity}</td>
+                                    <td class="col-price">BDT ${product.price.toFixed(2)}</td>
+                                    <td class="col-amount">BDT ${product.total.toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totals -->
+                <div class="invoice-section totals-section">
+                    <div class="totals-wrapper">
+                        <div class="total-row">
                             <span class="total-label">Subtotal</span>
                             <span class="total-value">BDT ${invoice.subtotal.toFixed(2)}</span>
                         </div>
                         ${invoice.paid > 0 ? `
-                        <div class="total-item">
+                        <div class="total-row">
                             <span class="total-label">Paid</span>
-                            <span class="total-value">BDT ${invoice.paid.toFixed(2)}</span>
+                            <div class="total-value-wrapper">
+                                <span class="total-value">BDT ${invoice.paid.toFixed(2)}</span>
+                                ${invoice.payments && invoice.payments.length > 0 ? `
+                                <span class="payment-dates">${invoice.payments.map(p => this.formatDate(p.date)).join(', ')}</span>
+                                ` : ''}
+                            </div>
                         </div>
                         ` : ''}
-                        <div class="total-grand">
-                            <span class="total-label">Payable</span>
-                            <span class="total-value">BDT ${invoice.payable.toFixed(2)}</span>
+                        <div class="total-row total-row-grand">
+                            <span class="total-label">Total Due</span>
+                            <span class="total-value total-value-grand">BDT ${invoice.payable.toFixed(2)}</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="invoice-footer">
+                    <div class="footer-message">Thank you for your business.</div>
+                    <div class="footer-date">Generated on ${this.formatDate(new Date().toISOString())}</div>
                 </div>
             </div>
         `;
