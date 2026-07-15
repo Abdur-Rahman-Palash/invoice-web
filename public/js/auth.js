@@ -1,33 +1,11 @@
 const Auth = {
     currentUser: null,
     isSignupMode: false,
+    apiBase: 'http://localhost:3000/api',
 
     async init() {
         this.bindEvents();
-
-        if (!window.firebaseAuth) {
-            console.log("Running in demo mode - no authentication needed");
-            // Auto login in demo mode (as owner for testing)
-            this.currentUser = {
-                id: "demo-user-123",
-                name: "Demo Owner",
-                email: "abdurrahmanpalashbd@gmail.com",
-                role: "owner",
-                loginTime: new Date().toISOString()
-            };
-            const storage = this.getStorage();
-            if (storage) storage.set("currentUser", this.currentUser);
-            this.showApp();
-            return;
-        }
-
-        try {
-            await window.firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-            this.observeAuthState();
-        } catch (error) {
-            this.showMessage(this.getErrorMessage(error), true);
-            console.error("Auth init error:", error);
-        }
+        this.checkSession();
     },
 
     getStorage() {
@@ -38,68 +16,54 @@ const Auth = {
         return window.Dashboard;
     },
 
-    observeAuthState() {
-        window.firebaseAuth.onAuthStateChanged((user) => {
-            const storage = this.getStorage();
+    async checkSession() {
+        const sessionId = localStorage.getItem('sessionId');
+        const sessionToken = localStorage.getItem('sessionToken');
 
-            if (user) {
-                // Get owner email from settings or use default
-                const settings = storage ? storage.get('settings') : {};
-                const ownerEmail = settings.ownerEmail || "abdurrahmanpalashbd@gmail.com";
-                const isOwner = user.email === ownerEmail;
+        if (sessionId && sessionToken) {
+            try {
+                const response = await fetch(`${this.apiBase}/auth/session?sessionId=${sessionId}&token=${sessionToken}`);
 
-                this.currentUser = {
-                    id: user.uid,
-                    name: user.displayName || user.email || "User",
-                    email: user.email || "",
-                    role: isOwner ? "owner" : "user",
-                    loginTime: new Date().toISOString()
-                };
-
-                if (storage) {
-                    storage.set("currentUser", this.currentUser);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        this.currentUser = result.data.user;
+                        const storage = this.getStorage();
+                        if (storage) {
+                            storage.set("currentUser", this.currentUser);
+                        }
+                        this.showApp();
+                        return;
+                    }
                 }
-                this.clearMessage();
-                this.showApp();
-            } else {
-                this.currentUser = null;
-                if (storage) {
-                    storage.remove("currentUser");
-                }
-                this.showLogin();
+            } catch (error) {
+                console.error('Session validation error:', error);
             }
-        });
+        }
+
+        this.showLogin();
     },
 
     bindEvents() {
         const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
         const logoutBtn = document.getElementById("logout-btn");
-        const signupBtn = document.getElementById("signup-btn");
-        const signinBtn = document.getElementById("signin-btn");
-        const googleSigninBtn = document.getElementById("google-signin-btn");
 
+        // Handle login form submission
         if (loginForm) {
             loginForm.addEventListener("submit", (e) => {
-                if (this.isSignupMode) {
-                    this.handleSignup(e);
-                } else {
-                    this.handleLogin(e);
-                }
+                this.handleLogin(e);
             });
         }
 
-        if (signupBtn) {
-            signupBtn.addEventListener("click", () => this.toggleSignupMode(true));
+        // Handle register form submission
+        if (registerForm) {
+            registerForm.addEventListener("submit", (e) => {
+                this.handleSignup(e);
+            });
         }
 
-        if (signinBtn) {
-            signinBtn.addEventListener("click", () => this.toggleSignupMode(false));
-        }
-
-        if (googleSigninBtn) {
-            googleSigninBtn.addEventListener("click", () => this.handleGoogleSignIn());
-        }
-
+        // Handle logout
         if (logoutBtn) {
             logoutBtn.addEventListener("click", () => this.handleLogout());
         }
@@ -129,9 +93,14 @@ const Auth = {
     },
 
     getCredentials() {
-        const fullName = document.getElementById("full-name").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value;
+        const fullNameElement = document.getElementById("full-name");
+        const emailElement = document.getElementById("email");
+        const passwordElement = document.getElementById("password");
+
+        const fullName = fullNameElement ? fullNameElement.value.trim() : '';
+        const email = emailElement ? emailElement.value.trim() : '';
+        const password = passwordElement ? passwordElement.value : '';
+
         return { fullName, email, password };
     },
 
@@ -147,61 +116,53 @@ const Auth = {
         e.preventDefault();
         const { email, password } = this.getCredentials();
 
-        if (!window.firebaseAuth) {
-            // Demo mode login
-            this.currentUser = {
-                id: "demo-user-123",
-                name: email.split('@')[0] || "Demo User",
-                email: email || "demo@example.com",
-                role: "owner",
-                loginTime: new Date().toISOString()
-            };
-            const storage = this.getStorage();
-            if (storage) storage.set("currentUser", this.currentUser);
-            this.showApp();
-            return;
-        }
-
         if (!email || !password) {
             this.showMessage("Enter your email and password.", true);
             return;
         }
 
-        await this.runAuthAction(async () => {
-            console.log("=== Starting Login Flow ===");
-            console.log("Email:", email);
+        try {
+            console.log('Attempting login with:', { email });
+            const response = await fetch(`${this.apiBase}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
 
-            // Use only Firebase Authentication for login
-            console.log("Attempting Firebase Auth login...");
-            const userCredential = await window.firebaseAuth.signInWithEmailAndPassword(email, password);
-            console.log("Firebase Auth login successful");
-            console.log("User ID:", userCredential.user.uid);
-            console.log("User email:", userCredential.user.email);
-            console.log("Display name:", userCredential.user.displayName);
+            console.log('Login response status:', response.status);
+            const result = await response.json();
+            console.log('Login result:', result);
 
-            console.log("=== Login Flow Complete ===");
-            this.showMessage("Signed in successfully.");
-        });
+            if (result.success) {
+                // Save session
+                localStorage.setItem('sessionId', result.data.session.id);
+                localStorage.setItem('sessionToken', result.data.session.token);
+
+                this.currentUser = result.data.user;
+                const storage = this.getStorage();
+                if (storage) {
+                    storage.set("currentUser", this.currentUser);
+                }
+
+                this.showMessage("Signed in successfully. Redirecting...");
+                // Redirect to main app
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } else {
+                this.showMessage(result.error || "Login failed", true);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showMessage("Login failed. Please try again.", true);
+        }
     },
 
     async handleSignup(e) {
         if (e) e.preventDefault();
         const { fullName, email, password } = this.getCredentials();
-
-        if (!window.firebaseAuth) {
-            // Demo mode signup
-            this.currentUser = {
-                id: "demo-user-123",
-                name: fullName || email.split('@')[0] || "Demo User",
-                email: email || "demo@example.com",
-                role: "owner",
-                loginTime: new Date().toISOString()
-            };
-            const storage = this.getStorage();
-            if (storage) storage.set("currentUser", this.currentUser);
-            this.showApp();
-            return;
-        }
 
         if (!fullName || !email || !password) {
             this.showMessage("Please fill in all fields (Full Name, Email, Password).", true);
@@ -214,114 +175,60 @@ const Auth = {
             return;
         }
 
-        await this.runAuthAction(async () => {
-            console.log("=== Starting Registration Flow ===");
-            console.log("Email:", email);
-            console.log("Full Name:", fullName);
+        try {
+            console.log('Attempting registration with:', { name: fullName, email });
+            const response = await fetch(`${this.apiBase}/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: fullName, email, password })
+            });
 
-            // Step 1: Create Firebase Authentication user
-            console.log("Step 1: Creating Firebase Auth user...");
-            const userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
-            console.log("Firebase Auth user created successfully");
-            console.log("User ID:", userCredential.user.uid);
-            console.log("User email:", userCredential.user.email);
+            console.log('Registration response status:', response.status);
+            const result = await response.json();
+            console.log('Registration result:', result);
 
-            // Step 2: Update user profile with display name
-            console.log("Step 2: Updating user profile with display name...");
-            await userCredential.user.updateProfile({ displayName: fullName });
-            console.log("Display name updated successfully");
-
-            // Step 3: Sign out the user (they need to login again)
-            console.log("Step 3: Signing out user for manual login...");
-            await window.firebaseAuth.signOut();
-            console.log("User signed out successfully");
-
-            console.log("=== Registration Flow Complete ===");
-            this.showMessage("Account created successfully. Please sign in with your credentials.");
-
-            // Switch to login mode after successful signup
-            setTimeout(() => {
-                this.toggleSignupMode(false);
-                this.clearMessage();
-            }, 2000);
-        });
-    },
-
-    async handleGoogleSignIn() {
-        if (!window.firebaseAuth) {
-            // Demo mode Google sign-in
-            this.currentUser = {
-                id: "demo-google-user-123",
-                name: "Demo Google User",
-                email: "demo-google@example.com",
-                loginTime: new Date().toISOString()
-            };
-            const storage = this.getStorage();
-            if (storage) storage.set("currentUser", this.currentUser);
-            this.showApp();
-            return;
+            if (result.success) {
+                this.showMessage("Account created successfully. Redirecting to login...");
+                // Redirect to login page after successful signup
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } else {
+                this.showMessage(result.error || "Registration failed", true);
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            this.showMessage("Registration failed. Please try again.", true);
         }
-
-        await this.runAuthAction(async () => {
-            await window.firebaseAuth.signInWithPopup(window.googleProvider);
-            this.showMessage("Google sign-in successful.");
-        });
     },
 
     async handleLogout() {
-        if (!window.firebaseAuth) {
-            // Demo mode logout
-            this.currentUser = null;
-            const storage = this.getStorage();
-            if (storage) storage.remove("currentUser");
-            this.showLogin();
-            return;
+        const sessionId = localStorage.getItem('sessionId');
+
+        if (sessionId) {
+            try {
+                await fetch(`${this.apiBase}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sessionId })
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
         }
 
-        await this.runAuthAction(async () => {
-            await window.firebaseAuth.signOut();
-        }, false);
-    },
+        // Clear session
+        localStorage.removeItem('sessionId');
+        localStorage.removeItem('sessionToken');
 
-    async runAuthAction(action, showLoading = true) {
-        try {
-            if (showLoading) {
-                this.showMessage("Please wait...");
-            }
-            await action();
-        } catch (error) {
-            console.error("Authentication error:", error);
-            console.error("Error code:", error.code);
-            console.error("Error message:", error.message);
-            console.error("Full error object:", JSON.stringify(error, null, 2));
-
-            // Try to get more details from the error
-            if (error.customData) {
-                console.error("Custom error data:", JSON.stringify(error.customData, null, 2));
-            }
-
-            this.showMessage(this.getErrorMessage(error), true);
-        }
-    },
-
-    getErrorMessage(error) {
-        console.error("Firebase Auth Error:", error.code, error.message);
-        const messages = {
-            "auth/email-already-in-use": "This email is already registered. If you registered with Google, please use Google Sign-In. Otherwise, please sign in with your password.",
-            "auth/invalid-credential": "Invalid email or password. If you registered with Google, please use Google Sign-In instead.",
-            "auth/invalid-email": "Enter a valid email address.",
-            "auth/missing-password": "Password is required.",
-            "auth/popup-closed-by-user": "Google sign-in was closed before completion.",
-            "auth/too-many-requests": "Too many attempts. Please try again later.",
-            "auth/unauthorized-domain": "This domain is not authorized in Firebase Authentication settings.",
-            "auth/user-not-found": "No account found with this email. Please create an account first.",
-            "auth/weak-password": "Password must be at least 6 characters.",
-            "auth/account-exists-with-different-credential": "This email is registered with a different authentication method. Please try signing in with Google.",
-            "auth/wrong-password": "Incorrect password. Please try again.",
-            "auth/operation-not-allowed": "Email/Password authentication is not enabled. Please enable it in Firebase Console."
-        };
-
-        return messages[error.code] || error.message || "Authentication failed.";
+        this.currentUser = null;
+        const storage = this.getStorage();
+        if (storage) storage.remove("currentUser");
+        this.showLogin();
     },
 
     showMessage(message, isError = false) {
@@ -343,13 +250,18 @@ const Auth = {
     },
 
     showLogin() {
-        document.getElementById("login-page").classList.remove("hidden");
-        document.getElementById("app-container").classList.add("hidden");
+        // Redirect to login page if not already there
+        if (!window.location.pathname.includes('login.html') && !window.location.pathname.includes('register.html')) {
+            window.location.href = 'login.html';
+        }
     },
 
     showApp() {
-        document.getElementById("login-page").classList.add("hidden");
-        document.getElementById("app-container").classList.remove("hidden");
+        // Redirect to main app if not already there
+        if (window.location.pathname.includes('login.html') || window.location.pathname.includes('register.html')) {
+            window.location.href = 'index.html';
+            return;
+        }
 
         if (this.currentUser) {
             document.getElementById("user-name").textContent = this.currentUser.name;

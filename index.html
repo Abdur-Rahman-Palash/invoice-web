@@ -7,40 +7,8 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Login Page -->
-    <div id="login-page" class="page">
-        <div class="login-container">
-            <div class="login-card">
-                <div class="login-header">
-                    <h1>Office Management</h1>
-                </div>
-                <form id="login-form" class="login-form">
-                    <div class="form-group" id="name-group" style="display: none;">
-                        <label for="full-name">Full Name</label>
-                        <input type="text" id="full-name" name="full-name" placeholder="Enter your full name">
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required placeholder="Enter your email address">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required placeholder="Enter your password" minlength="6">
-                        <small style="color: #6b7280; font-size: 0.875rem;">Password must be at least 6 characters</small>
-                    </div>
-                    <div id="auth-message" class="auth-message hidden" role="alert"></div>
-                    <div class="login-actions">
-                        <button type="submit" class="btn btn-primary btn-full" id="signin-btn">Sign In</button>
-                        <button type="button" class="btn btn-outline btn-full" id="signup-btn">Create Account</button>
-                        <button type="button" class="btn btn-google btn-full" id="google-signin-btn">Continue with Google</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Main App Container -->
-    <div id="app-container" class="page hidden">
+    <div id="app-container" class="page">
         <!-- Navigation Bar -->
         <nav class="navbar">
             <div class="nav-container">
@@ -621,19 +589,6 @@
     <script src="js/product.js"></script>
     <script src="js/payment.js"></script>
     <script src="js/app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
-    <script>
-        window.__FIREBASE_CONFIG__ = {
-            apiKey: "AIzaSyChcTvRJ4UJViqnTjL5jZJwxcbPCwYTmYw",
-            authDomain: "invoice-web-1ca37.firebaseapp.com",
-            projectId: "invoice-web-1ca37",
-            storageBucket: "invoice-web-1ca37.firebasestorage.app",
-            messagingSenderId: "128410955818",
-            appId: "1:128410955818:web:3de9feeb3bd4ce7e2a5353"
-        };
-    </script>
-    <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="https://aics-sdcf.onrender.com/js/chat-widget.js?v=1782644263196" data-business-id="ca9cea87cb5908890b6a5f96f4ef1118"></script>
 </body>
