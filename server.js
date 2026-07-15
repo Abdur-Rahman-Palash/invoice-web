@@ -396,13 +396,11 @@ app.post('/api/auth/firebase', async (req, res) => {
 });
 
 // Serve HTML files for all routes (SPA support)
-app.get('*', (req, res) => {
-  // If it's an API route, let it 404
+app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
-  
-  // Serve index.html for all other routes
+
   res.sendFile(__dirname + '/index.html');
 });
 
