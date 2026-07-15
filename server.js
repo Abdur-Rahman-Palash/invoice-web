@@ -27,6 +27,9 @@ try {
 app.use(cors());
 app.use(express.json());
 
+// Serve static files
+app.use(express.static('public'));
+
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
@@ -390,6 +393,17 @@ app.post('/api/auth/firebase', async (req, res) => {
     console.error('Firebase auth error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// Serve HTML files for all routes (SPA support)
+app.get('*', (req, res) => {
+  // If it's an API route, let it 404
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  // Serve index.html for all other routes
+  res.sendFile(__dirname + '/index.html');
 });
 
 app.listen(PORT, () => {
