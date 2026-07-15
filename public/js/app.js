@@ -10,10 +10,13 @@ const App = {
         this.bindDiscountTaxEvents();
         this.bindSettingsEvents();
         this.insertBackButtons();
-        
+
         // Wait for storage to be initialized with database data
         await Storage.initializeDefaults();
-        
+
+        // Load company logo in navbar
+        this.loadNavbarLogo();
+
         // Initialize all modules after data is loaded
         Invoice.init();
         Product.init();
@@ -100,6 +103,7 @@ const App = {
         document.getElementById('company-email').value = settings.companyEmail || '';
         document.getElementById('company-website').value = settings.companyWebsite || '';
         document.getElementById('tax-number').value = settings.taxNumber || '';
+        document.getElementById('owner-email').value = settings.ownerEmail || 'abdurrahmanpalashbd@gmail.com';
 
         document.getElementById('settings-modal').classList.remove('hidden');
     },
@@ -137,6 +141,7 @@ const App = {
             companyEmail: document.getElementById('company-email').value,
             companyWebsite: document.getElementById('company-website').value,
             taxNumber: document.getElementById('tax-number').value,
+            ownerEmail: document.getElementById('owner-email').value,
             companyLogo: companyLogo,
             currency: 'BDT',
             taxRate: 0,
@@ -145,6 +150,7 @@ const App = {
         };
 
         await Storage.set('settings', settings);
+        this.loadNavbarLogo(); // Reload navbar logo
         this.closeSettings();
         alert('Company settings saved successfully!');
     },
@@ -156,6 +162,15 @@ const App = {
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
+    },
+
+    loadNavbarLogo() {
+        const settings = Storage.get('settings') || {};
+        const navbarLogo = document.getElementById('navbar-logo');
+
+        if (navbarLogo && settings.companyLogo) {
+            navbarLogo.src = settings.companyLogo;
+        }
     },
 
     navigateTo(page, addToHistory = true) {

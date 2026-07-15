@@ -175,8 +175,8 @@ const Invoice = {
         const currentPaid = parseFloat(document.getElementById('paid').value) || 0;
         const dueAmount = grandTotal - currentPaid;
 
-        // Check if payment amount exceeds due amount
-        if (paymentAmount > dueAmount) {
+        // Check if payment amount exceeds due amount (only if due amount is positive)
+        if (dueAmount > 0 && paymentAmount > dueAmount) {
             alert(`Payment amount cannot exceed the due amount of BDT ${dueAmount.toFixed(2)}`);
             return;
         }
@@ -594,11 +594,24 @@ const Invoice = {
         this.showPrintDownloadButtons();
     },
 
-    editInvoice() {
-        if (!this.currentInvoice) return;
+    editInvoice(invoiceId) {
+        // If invoiceId is provided, load that invoice
+        if (invoiceId) {
+            const invoices = Storage.get('invoices') || [];
+            const invoice = invoices.find(inv => inv.id === invoiceId);
 
-        this.closeModal();
-        this.populateForm(this.currentInvoice);
+            if (invoice) {
+                this.currentInvoice = invoice;
+                this.closeModal();
+                this.populateForm(invoice);
+            } else {
+                alert('Invoice not found');
+            }
+        } else if (this.currentInvoice) {
+            // If no invoiceId provided, use current invoice (for edit button in modal)
+            this.closeModal();
+            this.populateForm(this.currentInvoice);
+        }
     },
 
     getFormData() {

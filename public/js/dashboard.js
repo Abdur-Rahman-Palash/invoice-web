@@ -43,7 +43,7 @@ const Dashboard = {
             const statusClass = isPaid ? 'status-paid' : 'status-due';
             const statusText = isPaid ? 'Paid' : 'Due';
             const cursorStyle = isPaid ? 'default' : 'pointer';
-            const clickHandler = isPaid ? '' : `onclick="Invoice.editInvoice('${inv.id}')"`;
+            const dataAttribute = isPaid ? '' : `data-invoice-id="${inv.id}" data-clickable="true"`;
 
             return `
             <tr>
@@ -51,10 +51,36 @@ const Dashboard = {
                 <td>${inv.customerName}</td>
                 <td>${this.formatDate(inv.date)}</td>
                 <td>BDT ${(inv.payable || inv.grandTotal || 0).toFixed(2)}</td>
-                <td><span class="status-badge ${statusClass}" style="cursor: ${cursorStyle}" ${clickHandler}>${statusText}</span></td>
+                <td><span class="status-badge ${statusClass}" style="cursor: ${cursorStyle}" ${dataAttribute}>${statusText}</span></td>
             </tr>
         `;
         }).join('');
+
+        // Re-bind click events after rendering
+        this.bindStatusBadgeClicks();
+    },
+
+    bindStatusBadgeClicks() {
+        const recentInvoicesBody = document.getElementById('recent-invoices-body');
+        if (!recentInvoicesBody) return;
+
+        // Remove existing listener to avoid duplicates
+        const newBody = recentInvoicesBody.cloneNode(true);
+        recentInvoicesBody.parentNode.replaceChild(newBody, recentInvoicesBody);
+
+        // Add click handler
+        newBody.addEventListener('click', (e) => {
+            const statusBadge = e.target.closest('.status-badge');
+            if (statusBadge && statusBadge.dataset.clickable === 'true') {
+                const invoiceId = statusBadge.dataset.invoiceId;
+                console.log('Status badge clicked, invoice ID:', invoiceId);
+                if (invoiceId && window.Invoice && window.Invoice.editInvoice) {
+                    window.Invoice.editInvoice(invoiceId);
+                } else {
+                    console.error('Invoice module or editInvoice function not available');
+                }
+            }
+        });
     },
 
     bindEvents() {

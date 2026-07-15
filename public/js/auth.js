@@ -43,8 +43,9 @@ const Auth = {
             const storage = this.getStorage();
 
             if (user) {
-                // Define owner email (you can change this to your owner email)
-                const ownerEmail = "abdurrahmanpalashbd@gmail.com";
+                // Get owner email from settings or use default
+                const settings = storage ? storage.get('settings') : {};
+                const ownerEmail = settings.ownerEmail || "abdurrahmanpalashbd@gmail.com";
                 const isOwner = user.email === ownerEmail;
 
                 this.currentUser = {
