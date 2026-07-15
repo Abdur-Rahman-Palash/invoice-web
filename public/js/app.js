@@ -149,10 +149,30 @@ const App = {
             updatedBy: Auth.currentUser?.email || 'unknown'
         };
 
-        await Storage.set('settings', settings);
-        this.loadNavbarLogo(); // Reload navbar logo
-        this.closeSettings();
-        alert('Company settings saved successfully!');
+        // Save each setting to database
+        const apiBase = window.CONFIG?.API_BASE_URL || 'http://localhost:3000/api';
+        
+        try {
+            for (const [key, value] of Object.entries(settings)) {
+                if (value !== null && value !== undefined) {
+                    await fetch(`${apiBase}/settings`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key, value: String(value) })
+                    });
+                }
+            }
+
+            // Update local cache
+            Storage.cache.settings = settings;
+            
+            this.loadNavbarLogo(); // Reload navbar logo
+            this.closeSettings();
+            alert('Company settings saved successfully!');
+        } catch (error) {
+            console.error('Error saving settings to database:', error);
+            alert('Error saving settings. Please try again.');
+        }
     },
 
     fileToBase64(file) {

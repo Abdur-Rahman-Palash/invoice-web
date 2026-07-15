@@ -6,6 +6,74 @@ const Auth = {
     async init() {
         this.bindEvents();
         this.checkSession();
+        this.initFirebaseAuth();
+    },
+
+    initFirebaseAuth() {
+        if (window.firebaseAuth) {
+            window.firebaseAuth.onAuthStateChanged((user) => {
+                if (user) {
+                    this.handleFirebaseUser(user);
+                } else {
+                    console.log('Firebase user signed out');
+                }
+            });
+        }
+    },
+
+    async handleFirebaseUser(firebaseUser) {
+        try {
+            const idToken = await firebaseUser.getIdToken();
+            const response = await fetch(`${this.apiBase}/auth/firebase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    idToken,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0]
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                this.currentUser = result.data.user;
+                localStorage.setItem('sessionId', result.data.sessionId);
+                localStorage.setItem('sessionToken', result.data.sessionToken);
+                
+                const storage = this.getStorage();
+                if (storage) {
+                    storage.set("currentUser", this.currentUser);
+                }
+                
+                this.showApp();
+            } else {
+                alert('Authentication failed: ' + (result.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Firebase auth error:', error);
+            alert('Authentication failed. Please try again.');
+        }
+    },
+
+    async signInWithGoogle() {
+        if (!window.firebaseAuth) {
+            alert('Firebase is not configured. Please set up Firebase configuration.');
+            return;
+        }
+
+        try {
+            const result = await window.firebaseAuth.signInWithPopup(window.googleProvider);
+            await this.handleFirebaseUser(result.user);
+        } catch (error) {
+            console.error('Google sign-in error:', error);
+            if (error.code === 'auth/popup-blocked') {
+                alert('Please allow popups for this site to use Google Sign-In.');
+            } else if (error.code === 'auth/cancelled-popup-request') {
+                console.log('Google sign-in cancelled by user');
+            } else {
+                alert('Google Sign-In failed: ' + error.message);
+            }
+        }
     },
 
     getStorage() {
@@ -48,6 +116,7 @@ const Auth = {
         const loginForm = document.getElementById("login-form");
         const registerForm = document.getElementById("register-form");
         const logoutBtn = document.getElementById("logout-btn");
+        const googleSignInBtn = document.getElementById("google-signin-btn");
 
         // Handle login form submission
         if (loginForm) {
@@ -61,6 +130,11 @@ const Auth = {
             registerForm.addEventListener("submit", (e) => {
                 this.handleSignup(e);
             });
+        }
+
+        // Handle Google Sign In
+        if (googleSignInBtn) {
+            googleSignInBtn.addEventListener("click", () => this.signInWithGoogle());
         }
 
         // Handle logout

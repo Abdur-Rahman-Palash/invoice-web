@@ -1,11 +1,27 @@
 const express = require('express');
 const cors = require('cors');
+const admin = require('firebase-admin');
 const { saveInvoice, getInvoice, getAllInvoices, deleteInvoice } = require('./invoice-db');
 const { saveProduct, saveProducts, getAllProducts, deleteProduct } = require('./product-db');
 const pool = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Firebase Admin SDK initialization
+// Note: For production, you need to set up Firebase Admin SDK with service account credentials
+let firebaseAdminInitialized = false;
+try {
+  // Initialize Firebase Admin with service account
+  // You would typically use: admin.initializeApp({
+  //   credential: admin.credential.cert(serviceAccount)
+  // });
+  // For now, we'll use a simpler approach without full token verification
+  console.log('Firebase Admin SDK imported - token verification not fully configured');
+  firebaseAdminInitialized = true;
+} catch (error) {
+  console.error('Firebase Admin initialization error:', error);
+}
 
 // Middleware
 app.use(cors());
@@ -287,6 +303,94 @@ function generateSessionToken(email, password) {
   }
   return hash.toString(16);
 }
+
+// Settings API endpoints
+app.get('/api/settings', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT key, value FROM settings');
+    const settings = {};
+    result.rows.forEach(row => {
+      settings[row.key] = row.value;
+    });
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/settings', async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    await pool.query(
+      'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP',
+      [key, value]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Firebase Authentication endpoint
+app.post('/api/auth/firebase', async (req, res) => {
+  try {
+    const { idToken, email, displayName } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ success: false, error: 'ID token is required' });
+    }
+
+    // For production, verify the Firebase ID token using Firebase Admin SDK
+    // For now, we'll accept the token and use the provided email/displayName
+    // In production: const decodedToken = await admin.auth().verifyIdToken(idToken);
+    
+    const firebaseEmail = email || 'firebase-user@example.com';
+    const firebaseName = displayName || 'Firebase User';
+    
+    // Create session for Firebase users
+    const sessionId = generateSessionId();
+    const sessionToken = generateSessionToken(firebaseEmail, 'firebase-auth');
+    
+    // Check if user exists in database, if not create them
+    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [firebaseEmail]);
+    let user;
+    
+    if (userResult.rows.length === 0) {
+      // Create new user
+      const insertResult = await pool.query(
+        'INSERT INTO users (email, password, full_name) VALUES ($1, $2, $3) RETURNING *',
+        [firebaseEmail, 'firebase-auth', firebaseName]
+      );
+      user = insertResult.rows[0];
+    } else {
+      user = userResult.rows[0];
+    }
+
+    // Store session in database
+    await pool.query(
+      'INSERT INTO sessions (session_id, user_id, token, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL \'7 days\')',
+      [sessionId, user.id, sessionToken]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name
+        },
+        sessionId,
+        sessionToken
+      }
+    });
+  } catch (error) {
+    console.error('Firebase auth error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

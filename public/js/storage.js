@@ -121,6 +121,44 @@ const Storage = {
             }
         }
 
+        // Load settings from database
+        try {
+            const response = await fetch(`${API_BASE_URL}/settings`);
+            const data = await response.json();
+            if (data.success) {
+                this.cache.settings = data.data;
+                console.log('Loaded settings from database:', this.cache.settings);
+            } else {
+                console.error('Failed to load settings:', data.error);
+                if (!this.cache.settings) {
+                    this.cache.settings = {
+                        companyName: 'Your Company Name',
+                        companyAddress: 'Your Address',
+                        companyPhone: 'Your Phone',
+                        companyEmail: 'your@email.com',
+                        ownerName: '',
+                        ownerTitle: '',
+                        currency: 'BDT',
+                        taxRate: 0
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Error loading settings from database:', error);
+            if (!this.cache.settings) {
+                this.cache.settings = {
+                    companyName: 'Your Company Name',
+                    companyAddress: 'Your Address',
+                    companyPhone: 'Your Phone',
+                    companyEmail: 'your@email.com',
+                    ownerName: '',
+                    ownerTitle: '',
+                    currency: 'USD',
+                    taxRate: 0
+                };
+            }
+        }
+
         // Initialize invoices array if missing
         if (!this.cache.invoices) {
             this.cache.invoices = [];
@@ -131,7 +169,7 @@ const Storage = {
             this.cache.products = [];
         }
 
-        // Initialize settings
+        // Initialize settings if still missing
         if (!this.cache.settings) {
             this.cache.settings = {
                 companyName: 'Your Company Name',

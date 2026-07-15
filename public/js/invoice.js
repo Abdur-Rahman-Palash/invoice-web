@@ -749,9 +749,9 @@ const Invoice = {
                     ${invoice.products.map((product, index) => `
                         <div class="product-table-row ${index % 2 === 1 ? 'row-alt' : ''}">
                             <div class="product-col-description">${product.name}</div>
-                            <div class="product-col-price">$${product.price.toFixed(2)}</div>
+                            <div class="product-col-price">BDT ${product.price.toFixed(2)}</div>
                             <div class="product-col-qty">${product.quantity}</div>
-                            <div class="product-col-total">$${product.total.toFixed(2)}</div>
+                            <div class="product-col-total">BDT ${product.total.toFixed(2)}</div>
                         </div>
                     `).join('')}
                 </div>
