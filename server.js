@@ -349,6 +349,8 @@ app.post('/api/auth/firebase', async (req, res) => {
   try {
     const { idToken, email, displayName } = req.body;
 
+    console.log('Firebase auth request:', { email, displayName });
+
     if (!idToken) {
       return res.status(400).json({ success: false, error: 'ID token is required' });
     }
@@ -360,9 +362,13 @@ app.post('/api/auth/firebase', async (req, res) => {
     const firebaseEmail = email || 'firebase-user@example.com';
     const firebaseName = displayName || 'Firebase User';
     
+    console.log('Processing Firebase user:', firebaseEmail, firebaseName);
+    
     // Create session for Firebase users
     const sessionId = generateSessionId();
     const sessionToken = generateSessionToken(firebaseEmail, 'firebase-auth');
+    
+    console.log('Generated session:', sessionId);
     
     // Check if user exists in database, if not create them
     const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [firebaseEmail]);
@@ -371,6 +377,7 @@ app.post('/api/auth/firebase', async (req, res) => {
     if (userResult.rows.length === 0) {
       // Create new user
       const userId = 'USR-' + Date.now();
+      console.log('Creating new user:', userId);
       const insertResult = await pool.query(
         'INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4) RETURNING *',
         [userId, firebaseName, firebaseEmail, 'firebase-auth']
@@ -380,11 +387,15 @@ app.post('/api/auth/firebase', async (req, res) => {
       user = userResult.rows[0];
     }
 
+    console.log('User found/created:', user.id);
+
     // Store session in database
     await pool.query(
       'INSERT INTO sessions (id, user_id, token, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL \'7 days\')',
       [sessionId, user.id, sessionToken]
     );
+
+    console.log('Session created successfully');
 
     res.json({
       success: true,
@@ -400,6 +411,8 @@ app.post('/api/auth/firebase', async (req, res) => {
     });
   } catch (error) {
     console.error('Firebase auth error:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ success: false, error: error.message });
   }
 });
