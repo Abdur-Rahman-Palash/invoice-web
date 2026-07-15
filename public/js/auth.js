@@ -1,7 +1,7 @@
 const Auth = {
     currentUser: null,
     isSignupMode: false,
-    apiBase: 'http://localhost:3000/api',
+    apiBase: window.CONFIG?.API_BASE_URL || 'http://localhost:3000/api',
 
     async init() {
         this.bindEvents();

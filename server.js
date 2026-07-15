@@ -27,8 +27,11 @@ try {
 app.use(cors());
 app.use(express.json());
 
-// Serve static files
+// Serve static files from public directory
 app.use(express.static('public'));
+
+// Serve root files from public directory
+app.use(express.static(__dirname));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -294,6 +297,11 @@ app.post('/api/auth/logout', async (req, res) => {
   }
 });
 
+// Helper function to generate session ID
+function generateSessionId() {
+  return 'SES-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+}
+
 // Helper function to generate session token
 function generateSessionToken(email, password) {
   const secret = 'invoice-web-session-secret-2026';
@@ -362,9 +370,10 @@ app.post('/api/auth/firebase', async (req, res) => {
     
     if (userResult.rows.length === 0) {
       // Create new user
+      const userId = 'USR-' + Date.now();
       const insertResult = await pool.query(
-        'INSERT INTO users (email, password, full_name) VALUES ($1, $2, $3) RETURNING *',
-        [firebaseEmail, 'firebase-auth', firebaseName]
+        'INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4) RETURNING *',
+        [userId, firebaseName, firebaseEmail, 'firebase-auth']
       );
       user = insertResult.rows[0];
     } else {
@@ -373,7 +382,7 @@ app.post('/api/auth/firebase', async (req, res) => {
 
     // Store session in database
     await pool.query(
-      'INSERT INTO sessions (session_id, user_id, token, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL \'7 days\')',
+      'INSERT INTO sessions (id, user_id, token, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL \'7 days\')',
       [sessionId, user.id, sessionToken]
     );
 
@@ -383,7 +392,7 @@ app.post('/api/auth/firebase', async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.full_name
+          fullName: user.name
         },
         sessionId,
         sessionToken
